@@ -165,16 +165,20 @@ Planning PR -> human review -> merge
 
 **Trigger:** A milestone is started (plan merged, milestone set to active).
 
-**Full team:** Tech Lead -> Acceptance Tester
-**Phase 1:** Tech Lead -> Acceptance Tester
+**Full team:** Tech Lead -> DevOps Engineer -> Acceptance Tester
+**Phase 1:** Tech Lead -> Acceptance Tester (Developer covers DevOps in Phase 1)
 
-**Output PR:** Failing acceptance tests (TDD) plus plan updates documenting which tests pass at each step.
+**Output PR:** Failing acceptance tests (TDD) plus any build/CI setup needed to run them, plus plan updates documenting which tests pass at each step.
 
 ```
 Milestone activated in plan
     |
     v
 [Tech Lead] -- review milestone, confirm PR ordering
+    |
+    v
+[DevOps Engineer] -- set up build/CI for new components if needed
+                     ensure acceptance test infrastructure is in place
     |
     v
 [Acceptance Tester] -- write failing E2E/integration tests
@@ -441,9 +445,10 @@ Each loop type defines a fixed stage sequence. The orchestration workflow knows 
 **Verification PR stages:**
 ```
 1. [contribute] Tech Lead -- review milestone details, confirm PR ordering
-2. [contribute] Acceptance Tester -- write failing E2E/integration tests
-3. [review] Tech Lead -- review test coverage of acceptance criteria
-4. [review] Human -- final review
+2. [contribute] DevOps Engineer -- set up build/CI for new components if needed
+3. [contribute] Acceptance Tester -- write failing E2E/integration tests
+4. [review] Tech Lead -- review test coverage and build setup
+5. [review] Human -- final review
 ```
 
 **Implementation PR stages:**

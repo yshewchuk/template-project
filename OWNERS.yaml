@@ -1,0 +1,45 @@
+product-manager:
+  - ".planning/backlog/**"
+
+tech-lead:
+  - ".planning/active/**"
+  - ".planning/completed/**"
+  - ".planning/templates/**"
+  # Phase 1 expanded scope (covers Architect + Security Engineer):
+  - "docs/architecture/**"
+  - "contracts/**"
+  - "docs/security/**"
+  - "guardrails/security.yaml"
+
+acceptance-tester:
+  - "projects/*/tests/integration/**"
+  - "projects/*/tests/e2e/**"
+
+developer:
+  - "projects/*/src/**"
+  - "projects/*/README.md"
+  - "projects/*/CLAUDE.md"
+  # Phase 1 expanded scope (covers DevOps + Operator + Unit Tester):
+  - "projects/*/tests/unit/**"
+  - "projects/*/src/**/*.test.*"
+  - ".github/workflows/ci-*"
+  - "Makefile"
+  - "guardrails/coverage.yaml"
+  - "guardrails/linting.yaml"
+  - "projects/*/package.json"
+  - "projects/*/tsconfig.json"
+  - "projects/*/build.gradle.kts"
+  - "projects/*/go.mod"
+  - "projects/*/pyproject.toml"
+  - "projects/infra/**"
+
+scrum-master:
+  - "docs/agents/**"
+  - ".planning/schemas/**"
+  - "scripts/planning/**"
+  - "OWNERS.yaml"
+  - "docs/guides/**"
+  - "CLAUDE.md"
+  - "README.md"
+  - ".github/workflows/loop-*"
+  - ".github/workflows/reusable/**"

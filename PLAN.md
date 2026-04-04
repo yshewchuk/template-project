@@ -115,16 +115,10 @@ scrum-master:
   - "scripts/planning/**"
   - "OWNERS.yaml"
   - "docs/guides/**"
-
-shared:
-  - path: "CLAUDE.md"
-    owners: [scrum-master, tech-lead]
-  - path: "README.md"
-    owners: [scrum-master, tech-lead]
-  - path: ".github/workflows/loop-*"
-    owners: [scrum-master, developer]
-  - path: ".github/workflows/reusable/**"
-    owners: [scrum-master, developer]
+  - "CLAUDE.md"
+  - "README.md"
+  - ".github/workflows/loop-*"
+  - ".github/workflows/reusable/**"
 ```
 
 ---
@@ -434,41 +428,55 @@ Three mechanisms work together:
 
 #### Stage Sequences Per Loop
 
-Each loop type defines a fixed stage sequence. The orchestration workflow knows the sequence and advances through it automatically.
+Each loop type defines an ordered sequence of personas that follows a **growing loop** pattern:
 
-**Planning PR stages:**
-```
-1. [contribute] Tech Lead -- create plan, architecture docs, security assessment
-2. [review] Human (PM) -- review plan and priorities
-```
+1. Each persona is either a **contributor** or a **reviewer** for that loop.
+2. Contributors add to the PR in order. After each contribution, all previous personas review and iterate until aligned before the loop expands.
+3. Reviewers validate the work against their area of responsibility and can request changes from contributors.
+4. If a reviewer identifies issues requiring changes to plans, architecture, or threat models, the milestone is paused and a Planning PR is raised to address the changes before the current PR resumes.
 
-**Verification PR stages:**
-```
-1. [contribute] Tech Lead -- review milestone details, confirm PR ordering
-2. [contribute] DevOps Engineer -- set up build/CI for new components if needed
-3. [contribute] Acceptance Tester -- write failing E2E/integration tests
-4. [review] Tech Lead -- review test coverage and build setup
-5. [review] Human -- final review
-```
+Sequences below use `|` to separate contributors (left) from reviewers (right):
 
-**Implementation PR stages:**
 ```
-1. [contribute] Developer -- implement functional code
-2. [review] Tech Lead -- review for plan adherence
-3. [contribute] DevOps Engineer -- update CI/build if needed
-4. [contribute] Operator -- add logging, monitoring, health checks
-5. [contribute] Unit Tester -- write unit tests
-6. [review] Security Engineer -- review for vulnerabilities
-7. [review] Architect -- review for architectural consistency
-8. [review] Tech Lead -- review for overall plan adherence
-9. [review] Acceptance Tester -- review unit test adequacy
-10. [review] Human -- final review
-```
+Planning: PM → Architect → Security Engineer → Tech Lead
+  PM:                [contribute] requirements, backlog ordering, priorities
+  Architect:         [contribute] architecture docs, ADRs, contract definitions
+  Security Engineer: [contribute] threat model, security assessment
+  Tech Lead:         [contribute] technical plan with milestones and ordered PRs
 
-**Improve PR stages:**
-```
-1. [contribute] Scrum Master -- propose process improvements
-2. [review] Human -- review and approve changes
+Verification: DevOps Engineer → Acceptance Tester → Tech Lead | Security Engineer → Architect → PM
+  DevOps Engineer:   [contribute] build system, test automation infrastructure
+  Acceptance Tester: [contribute] integration/E2E tests fitting the automation
+  Tech Lead:         [contribute] plan updates linking acceptance tests to planned PRs
+  Security Engineer: [review] security acceptance test coverage
+  Architect:         [review] test infrastructure architectural alignment
+  PM:                [review] tests implement desired experience
+
+Implementation: Developer → DevOps Engineer → Operator → Unit Tester | Tech Lead → Security Engineer → Architect → Acceptance Tester → PM
+  Developer:         [contribute] functional code
+  DevOps Engineer:   [contribute] CI/build updates
+  Operator:          [contribute] logging, monitoring, health checks
+  Unit Tester:       [contribute] unit tests
+  Tech Lead:         [review] plan adherence
+  Security Engineer: [review] vulnerabilities
+  Architect:         [review] architectural consistency
+  Acceptance Tester: [review] unit test adequacy
+  PM:                [review] requirements satisfaction
+
+Acceptance: DevOps Engineer → Acceptance Tester → Tech Lead | Security Engineer → Architect → PM
+  DevOps Engineer:   [contribute] update build system/automation if needed
+  Acceptance Tester: [contribute] iterate on acceptance tests based on implementation results
+  Tech Lead:         [contribute] plan updates reflecting current acceptance state
+  Security Engineer: [review] security acceptance test coverage
+  Architect:         [review] test infrastructure architectural alignment
+  PM:                [review] tests implement desired experience
+
+Improvement: Scrum Master | PM → Architect → Security Engineer → Tech Lead
+  Scrum Master:      [contribute] retrospective, process improvements, updated agent definitions
+  PM:                [review] process changes against product workflow
+  Architect:         [review] process changes against architecture workflow
+  Security Engineer: [review] process changes against security workflow
+  Tech Lead:         [review] process changes against technical workflow
 ```
 
 In Phase 1, stages for roles not yet active are skipped (e.g., DevOps, Operator, Unit Tester stages are handled by the Developer in a single contribute stage).
@@ -491,7 +499,7 @@ The orchestration bot posts a comment like this on each PR and updates it as sta
 | 7 | Review | Architect | Pending | -- |
 | 8 | Review | Tech Lead | Pending | -- |
 | 9 | Review | Acceptance Tester | Pending | -- |
-| 10 | Review | Human | Pending | -- |
+| 10 | Review | Product Manager | Pending | -- |
 
 Current stage: **6 -- Security Engineer review**
 ```
@@ -590,30 +598,17 @@ Built into each project's build system with idiomatic tools. Shared thresholds i
 
 **Objective:** Get Tech Lead, Acceptance Tester, Developer, and Scrum Master operating end-to-end on the web-game project. The human acts as Product Manager.
 
-### Step 1: Repository Foundation + Web Game Scaffolding
+### Step 1: Repository Foundation
 
-Create directory structure, root configs, OWNERS.yaml, and get web-game building with lint + test + coverage.
+Create directory structure, root configs, and OWNERS.yaml.
 
 **Deliverables:**
 - Full directory structure with `.gitkeep` placeholders
 - Root README.md, CLAUDE.md, .gitignore, OWNERS.yaml, Makefile
-- `projects/web-game/` scaffolded: package.json, tsconfig, vite, vitest, eslint, stub App.tsx + test
-- `projects/web-game/README.md` and `CLAUDE.md`
 
-**Done when:** `make lint`, `make test`, `make coverage` all pass.
+**Done when:** Directory structure exists, OWNERS.yaml is valid, root configs are in place.
 
-### Step 2: CI + Ownership Enforcement
-
-GitHub Actions for web-game CI and ownership validation.
-
-**Deliverables:**
-- `.github/workflows/ci-web-game.yml` with path triggers
-- `scripts/ownership/check.py` validating OWNERS.yaml
-- Hard gates (coverage >= 50%, lint clean) and soft warnings as PR comments
-
-**Done when:** CI triggers on web-game PRs, ownership violations are flagged, coverage gate works.
-
-### Step 3: Planning System (Minimal)
+### Step 2: Planning System (Minimal)
 
 Schemas, templates, validation, context extraction for one ticket.
 
@@ -625,7 +620,7 @@ Schemas, templates, validation, context extraction for one ticket.
 
 **Done when:** `make validate-planning` passes/fails correctly, context extraction differs per persona.
 
-### Step 4: Four Persona Definitions
+### Step 3: Four Persona Definitions
 
 Define Tech Lead, Acceptance Tester, Developer, Scrum Master with Phase 1 expanded scopes.
 
@@ -636,7 +631,7 @@ Define Tech Lead, Acceptance Tester, Developer, Scrum Master with Phase 1 expand
 
 **Done when:** Each persona has clear goals, constraints, ownership, triggers, and review criteria.
 
-### Step 5: Loop Orchestration Workflows
+### Step 4: Loop Orchestration Workflows
 
 GitHub Actions for all five loops wired for Phase 1 agents.
 
@@ -647,16 +642,16 @@ GitHub Actions for all five loops wired for Phase 1 agents.
 
 **Done when:** Each loop triggers correctly and invokes the right agents in order.
 
-### Step 6: End-to-End Validation
+### Step 5: End-to-End Validation
 
-Run a real ticket through all five loops.
+Run a real ticket through all five loops. The agents themselves scaffold and build the web game as the first real ticket.
 
 **Deliverables:**
-- Sample ticket and plan
+- Sample ticket and plan for web-game scaffolding
 - Observe all loops: planning, verification, implementation, accept, improve
 - Document manual steps still needed
 
-**Done when:** Full cycle completes, CI passes, Scrum Master produces an improvement suggestion.
+**Done when:** Full cycle completes, web-game is scaffolded by the agents, CI passes, Scrum Master produces an improvement suggestion.
 
 ---
 

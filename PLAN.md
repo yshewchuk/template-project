@@ -414,6 +414,110 @@ concurrency:
 
 Only one agent active at a time. Queued triggers execute in order.
 
+### PR Stage Model: Multi-Agent Collaboration on a Single PR
+
+When multiple agents contribute to a single PR (e.g., an Implementation PR where Developer, DevOps, Operator, and Unit Tester each push commits), the PR moves through a defined sequence of **stages**. Each stage is either a "contribute" stage (an agent pushes commits) or a "review" stage (a reviewer approves or requests changes).
+
+#### Stage Tracking Mechanism
+
+Three mechanisms work together:
+
+1. **PR Labels** -- Machine-readable current stage. The orchestration workflow sets a label like `stage/developer` or `stage/review-tech-lead` to indicate what is happening now. Only one stage label is active at a time.
+
+2. **Tracking Comment** -- Human-readable progress. The orchestration bot posts and continuously updates a comment on the PR showing a checklist of all stages with their completion status. This is the at-a-glance view of where the PR stands.
+
+3. **GitHub Reviews** -- Native approval mechanism for review stages. Reviewers use GitHub's approve/request-changes to signal their decision. The orchestration workflow watches for review events to advance or revert stages.
+
+#### Stage Sequences Per Loop
+
+Each loop type defines a fixed stage sequence. The orchestration workflow knows the sequence and advances through it automatically.
+
+**Planning PR stages:**
+```
+1. [contribute] Tech Lead -- create plan, architecture docs, security assessment
+2. [review] Human (PM) -- review plan and priorities
+```
+
+**Verification PR stages:**
+```
+1. [contribute] Tech Lead -- review milestone details, confirm PR ordering
+2. [contribute] Acceptance Tester -- write failing E2E/integration tests
+3. [review] Tech Lead -- review test coverage of acceptance criteria
+4. [review] Human -- final review
+```
+
+**Implementation PR stages:**
+```
+1. [contribute] Developer -- implement functional code
+2. [review] Tech Lead -- review for plan adherence
+3. [contribute] DevOps Engineer -- update CI/build if needed
+4. [contribute] Operator -- add logging, monitoring, health checks
+5. [contribute] Unit Tester -- write unit tests
+6. [review] Security Engineer -- review for vulnerabilities
+7. [review] Architect -- review for architectural consistency
+8. [review] Tech Lead -- review for overall plan adherence
+9. [review] Acceptance Tester -- review unit test adequacy
+10. [review] Human -- final review
+```
+
+**Improve PR stages:**
+```
+1. [contribute] Scrum Master -- propose process improvements
+2. [review] Human -- review and approve changes
+```
+
+In Phase 1, stages for roles not yet active are skipped (e.g., DevOps, Operator, Unit Tester stages are handled by the Developer in a single contribute stage).
+
+#### Tracking Comment Format
+
+The orchestration bot posts a comment like this on each PR and updates it as stages complete:
+
+```markdown
+## PR Progress: 001-M1-PR1 Game state model
+
+| # | Stage | Agent | Status | Commit/Review |
+|---|-------|-------|--------|---------------|
+| 1 | Contribute | Developer | Done | abc1234 |
+| 2 | Review | Tech Lead | Done | Approved |
+| 3 | Contribute | DevOps Engineer | Done | def5678 |
+| 4 | Contribute | Operator | Skipped (Phase 1) | -- |
+| 5 | Contribute | Unit Tester | Done | ghi9012 |
+| 6 | Review | Security Engineer | **Active** | Awaiting review |
+| 7 | Review | Architect | Pending | -- |
+| 8 | Review | Tech Lead | Pending | -- |
+| 9 | Review | Acceptance Tester | Pending | -- |
+| 10 | Review | Human | Pending | -- |
+
+Current stage: **6 -- Security Engineer review**
+```
+
+#### Review Rejection Flow
+
+When a reviewer requests changes, the workflow:
+
+1. Updates the tracking comment to show the rejection
+2. Reverts the stage label back to the relevant contributor (e.g., if Tech Lead requests changes at stage 2, the label goes back to `stage/developer` at stage 1)
+3. Invokes the contributor agent with the review feedback as context
+4. The contributor pushes new commits addressing the feedback
+5. The workflow advances back to the review stage
+
+This creates a tight loop between contributor and reviewer until the reviewer approves, then the PR advances to the next stage.
+
+#### Implementation Details
+
+The `reusable/agent-invoke.yml` template handles stage management:
+
+1. Read the current stage from PR labels
+2. Determine if this is a contribute or review stage
+3. For contribute stages: invoke the agent with persona + context + any prior review feedback
+4. After the agent pushes commits: advance the label to the next stage
+5. For review stages: request a review from the appropriate agent (or human)
+6. Watch for review events via `on-pr-iterate.yml` (triggered by `pull_request_review`)
+7. On approval: advance to next stage. On request-changes: revert to contributor stage.
+8. When all stages complete: mark PR as ready to merge
+
+The stage sequence definitions live in `docs/agents/loops/<loop-name>.md` alongside the loop documentation, making them easy for the Scrum Master to adjust during Improve loops.
+
 ---
 
 ## Guardrails

@@ -2,9 +2,8 @@
 """Validate .planning/ YAML files against their JSON Schemas.
 
 Validates:
-  - .planning/backlog/*.yaml   against  .planning/schemas/ticket.schema.json
-  - .planning/active/*.yaml    against  .planning/schemas/plan.schema.json
-  - .planning/completed/*.yaml against  .planning/schemas/plan.schema.json
+  - .planning/tickets/*.yaml   against  .planning/schemas/ticket.schema.json
+  - .planning/plans/*.yaml     against  .planning/schemas/plan.schema.json
   - .planning/templates/ticket.yaml against ticket schema
   - .planning/templates/plan.yaml   against plan schema
 
@@ -26,15 +25,14 @@ VALIDATION_MAP = {
     "ticket": {
         "schema_file": "ticket.schema.json",
         "directories": [
-            REPO_ROOT / ".planning" / "backlog",
+            REPO_ROOT / ".planning" / "tickets",
         ],
         "template": REPO_ROOT / ".planning" / "templates" / "ticket.yaml",
     },
     "plan": {
         "schema_file": "plan.schema.json",
         "directories": [
-            REPO_ROOT / ".planning" / "active",
-            REPO_ROOT / ".planning" / "completed",
+            REPO_ROOT / ".planning" / "plans",
         ],
         "template": REPO_ROOT / ".planning" / "templates" / "plan.yaml",
     },

@@ -18,4 +18,4 @@ security_assessment:
   status: pending
 architectural_assessment:
   status: pending
-plan_reference: ""
+plan_reference: ".planning/plans/001-basic-minesweeper-web.yaml"

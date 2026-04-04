@@ -1,5 +1,5 @@
 id: "001"
-ticket_reference: ".planning/backlog/001-basic-minesweeper-web.yaml"
+ticket_reference: ".planning/tickets/001-basic-minesweeper-web.yaml"
 status: in-progress
 milestones:
   - id: "001-M1"

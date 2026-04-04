@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "ticket.schema.json",
   "title": "Planning Ticket",
-  "description": "Schema for product backlog tickets in .planning/backlog/",
+  "description": "Schema for product backlog tickets in .planning/tickets/",
   "type": "object",
   "required": [
     "id",

@@ -1,4 +1,4 @@
-.PHONY: help validate-planning check-ownership lint test
+.PHONY: help validate-planning check-ownership query-tickets query-plans lint test
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -10,8 +10,11 @@ validate-planning: ## Validate .planning/ YAML files against schemas
 check-ownership: ## Verify PR file changes against OWNERS.yaml
 	@python3 scripts/ownership/check.py
 
-extract-context: ## Extract filtered planning context for a persona (PERSONA=tech-lead)
-	@python3 scripts/planning/extract-context.py --persona $(PERSONA)
+query-tickets: ## Query tickets as markdown (STATUS=backlog to filter)
+	@python3 scripts/planning/query-tickets.py $(if $(STATUS),--status $(STATUS),)
+
+query-plans: ## Query plans as markdown (STATUS=in-progress to filter)
+	@python3 scripts/planning/query-plans.py $(if $(STATUS),--status $(STATUS),)
 
 lint: ## Run linters across all projects
 	@echo "Linting not yet configured for individual projects."

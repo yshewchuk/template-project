@@ -1,5 +1,5 @@
 id: "000"
-ticket_reference: ".planning/backlog/000-ticket-slug.yaml"
+ticket_reference: ".planning/tickets/000-ticket-slug.yaml"
 status: draft
 milestones:
   - id: "000-M1"

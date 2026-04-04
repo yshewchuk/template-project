@@ -26,12 +26,11 @@ An example monorepo demonstrating how a team of specialized AI agents can collab
 │   └── guides/                 # Onboarding and how-to guides
 ├── .planning/
 │   ├── schemas/                # JSON Schemas for ticket + plan YAML
-│   ├── backlog/                # Ordered product backlog
-│   ├── active/                 # Active plans with status
-│   ├── completed/              # Archived work
+│   ├── tickets/                # Product backlog tickets (all statuses)
+│   ├── plans/                  # Technical plans (all statuses)
 │   └── templates/              # YAML templates
 ├── scripts/
-│   ├── planning/               # validate, render, extract-context
+│   ├── planning/               # validate, query-tickets, query-plans
 │   ├── ownership/              # OWNERS.yaml enforcement
 │   └── guardrails/             # coverage, docs, architecture checks
 ├── guardrails/                 # Shared thresholds (coverage, linting, etc.)
@@ -74,6 +73,10 @@ An example monorepo demonstrating how a team of specialized AI agents can collab
 ```bash
 make validate-planning    # Validate .planning/ YAML files
 make check-ownership      # Verify file ownership against OWNERS.yaml
+make query-tickets        # List all tickets as markdown
+make query-plans          # List all plans as markdown
+make query-tickets STATUS=backlog      # Filter tickets by status
+make query-plans STATUS=in-progress    # Filter plans by status
 ```
 
 See `docs/guides/` for detailed onboarding instructions.

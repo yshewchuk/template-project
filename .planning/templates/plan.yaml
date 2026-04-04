@@ -1,0 +1,16 @@
+id: "000"
+ticket_reference: ".planning/backlog/000-ticket-slug.yaml"
+status: draft
+milestones:
+  - id: "000-M1"
+    title: "First milestone title"
+    status: planned
+    acceptance_tests:
+      - test: "test_name_describing_behavior"
+        passing_at_pr: "000-M1-PR1"
+    pull_requests:
+      - id: "000-M1-PR1"
+        title: "First PR description"
+        status: planned
+        branch: "feat/000-m1-short-name"
+        estimated_lines: 100

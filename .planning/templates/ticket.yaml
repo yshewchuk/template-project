@@ -1,0 +1,17 @@
+id: "000"
+title: "Short descriptive title"
+status: backlog
+priority: medium
+created: "2026-01-01"
+description: |
+  Detailed description of what is needed and why.
+  Include user-facing behavior, constraints, and context.
+acceptance_criteria:
+  - "First measurable acceptance criterion"
+  - "Second measurable acceptance criterion"
+affected_projects: [web-game]
+security_assessment:
+  status: pending
+architectural_assessment:
+  status: pending
+plan_reference: ""

@@ -4,7 +4,7 @@
 
 This repository serves as an example monorepo demonstrating how a team of specialized AI agents can collaborate to build and iterate on a large-scale project. The example application is a **Minesweeper game** implemented across multiple platforms and languages, with supporting backend services and infrastructure.
 
-The core hypothesis: by providing agents with the right scaffolding — hierarchical documentation, objective guardrails, structured planning artifacts, and well-defined workflows — a team of AI agents with conflicting specialized roles can deliver incremental, high-quality changes with minimal human steering.
+The core hypothesis: by providing agents with the right scaffolding -- hierarchical documentation, objective guardrails, structured planning artifacts, and well-defined workflows -- a team of AI agents with conflicting specialized roles can deliver incremental, high-quality changes with minimal human steering.
 
 ### Success Criteria
 
@@ -17,7 +17,7 @@ The primary measure of success is **how little manual direction is needed from t
 
 ### Key Problems This Aims to Solve
 
-1. Agents don't break problems into small vertical slices — reviewers face large, hard-to-review PRs
+1. Agents don't break problems into small vertical slices -- reviewers face large, hard-to-review PRs
 2. Large changes cause expensive back-and-forth that fills agent context windows
 3. Agents ignore existing patterns and architecture, implementing the easiest path
 4. Agents don't account for long-term plans, causing naive implementations
@@ -35,7 +35,7 @@ The primary measure of success is **how little manual direction is needed from t
 - Revealing a mine ends the game
 - Revealing all non-mine cells wins the game
 
-Standard difficulty levels: Beginner (9×9, 10 mines), Intermediate (16×16, 40 mines), Expert (16×30, 99 mines).
+Standard difficulty levels: Beginner (9x9, 10 mines), Intermediate (16x16, 40 mines), Expert (16x30, 99 mines).
 
 This game was chosen because it has well-known semantics, enough complexity to exercise real architecture (game state, timers, scoring, configuration), and the rules can be extended with curveball variants to simulate evolving real-world requirements.
 
@@ -45,162 +45,154 @@ This game was chosen because it has well-known semantics, enough complexity to e
 
 ```
 /
-├── .github/
-│   └── workflows/              # GitHub Actions: CI, agent orchestration
-│       ├── ci-web-game.yml
-│       ├── ci-mobile-game.yml
-│       ├── ci-api.yml
-│       ├── ci-analytics.yml
-│       ├── ci-infra.yml
-│       ├── agent-architect.yml
-│       ├── agent-tech-lead.yml
-│       ├── agent-acceptance-tester.yml
-│       ├── agent-developer.yml
-│       ├── agent-unit-tester.yml
-│       ├── agent-security-reviewer.yml
-│       └── reusable/           # Shared workflow templates
-│           ├── lint-and-test.yml
-│           └── agent-invoke.yml
-│
-├── .cursor/
-│   └── rules/                  # Cursor agent rules (per-language, per-persona)
-│       ├── global.mdc
-│       ├── typescript.mdc
-│       ├── python.mdc
-│       ├── go.mdc
-│       ├── kotlin.mdc
-│       ├── terraform.mdc
-│       └── personas/
-│           ├── architect.mdc
-│           ├── tech-lead.mdc
-│           ├── developer.mdc
-│           ├── acceptance-tester.mdc
-│           ├── unit-tester.mdc
-│           └── security-reviewer.mdc
-│
-├── CLAUDE.md                   # Root-level Claude Code instructions
-│
-├── projects/
-│   ├── web-game/               # TypeScript (React + Vite)
-│   │   ├── CLAUDE.md
-│   │   ├── README.md
-│   │   ├── docs/
-│   │   ├── package.json
-│   │   ├── tsconfig.json
-│   │   ├── vitest.config.ts
-│   │   ├── eslint.config.js
-│   │   └── src/
-│   │
-│   ├── mobile-game/            # Kotlin (Android)
-│   │   ├── CLAUDE.md
-│   │   ├── README.md
-│   │   ├── docs/
-│   │   ├── build.gradle.kts
-│   │   └── app/
-│   │
-│   ├── api/                    # Go
-│   │   ├── CLAUDE.md
-│   │   ├── README.md
-│   │   ├── docs/
-│   │   ├── go.mod
-│   │   ├── cmd/
-│   │   └── internal/
-│   │
-│   ├── analytics/              # Python
-│   │   ├── CLAUDE.md
-│   │   ├── README.md
-│   │   ├── docs/
-│   │   ├── pyproject.toml
-│   │   └── src/
-│   │
-│   └── infra/                  # Terraform (AWS)
-│       ├── CLAUDE.md
-│       ├── README.md
-│       ├── docs/
-│       ├── main.tf
-│       └── modules/
-│
-├── contracts/                  # Shared API specs and schemas
-│   ├── openapi/
-│   │   └── api.yaml            # High score API spec
-│   └── events/
-│       └── analytics.yaml      # Analytics event schemas
-│
-├── docs/
-│   ├── architecture/
-│   │   ├── overview.md         # System architecture overview
-│   │   ├── decisions/          # Architecture Decision Records (ADRs)
-│   │   └── diagrams/
-│   ├── agents/
-│   │   ├── overview.md         # How the agent team works
-│   │   ├── personas/           # Detailed persona definitions
-│   │   │   ├── architect.md
-│   │   │   ├── tech-lead.md
-│   │   │   ├── developer.md
-│   │   │   ├── acceptance-tester.md
-│   │   │   ├── unit-tester.md
-│   │   │   └── security-reviewer.md
-│   │   └── workflows/          # Workflow documentation
-│   │       ├── ticket-lifecycle.md
-│   │       └── review-protocol.md
-│   └── guides/
-│       ├── onboarding.md       # How to set up and start using the repo
-│       └── adding-a-project.md # How to add a new project to the monorepo
-│
-├── .planning/
-│   ├── schemas/                # JSON Schemas for all planning YAML files
-│   │   ├── ticket.schema.json
-│   │   ├── plan.schema.json
-│   │   ├── milestone.schema.json
-│   │   └── review.schema.json
-│   ├── backlog/                # Tickets awaiting planning (YAML files)
-│   ├── active/                 # Work in progress (plans + status tracking)
-│   ├── completed/              # Archived completed work
-│   └── templates/              # Templates for tickets, plans, reviews
-│       ├── ticket.template.yaml
-│       ├── plan.template.yaml
-│       └── review.template.yaml
-│
-├── scripts/
-│   ├── planning/               # Scripts to work with planning YAML
-│   │   ├── render-plan.py      # YAML → Markdown rendering
-│   │   ├── validate.py         # Schema validation
-│   │   ├── extract-context.py  # Extract subsets for agent context
-│   │   └── status-update.py    # Update plan status fields
-│   └── guardrails/
-│       ├── check-coverage.sh   # Test coverage gate
-│       ├── check-docs.sh       # Documentation coverage check
-│       └── check-architecture.sh # Architectural fitness checks
-│
-├── guardrails/
-│   ├── coverage.yaml           # Per-project coverage thresholds
-│   ├── linting.yaml            # Linting configuration pointers
-│   ├── architecture.yaml       # Architectural constraints
-│   └── security.yaml           # Security policy and checks
-│
-├── Makefile                    # Top-level task runner
-└── README.md                   # Project overview and navigation
++-- .github/
+|   +-- workflows/
+|       +-- ci-web-game.yml           # Path-filtered CI for web-game
+|       +-- ci-mobile-game.yml        # Path-filtered CI for mobile-game
+|       +-- ci-api.yml                # Path-filtered CI for api
+|       +-- ci-analytics.yml          # Path-filtered CI for analytics
+|       +-- ci-infra.yml              # Path-filtered CI for infra
+|       +-- on-pr-merge.yml           # Coordination: determine next agent after merge
+|       +-- on-pr-iterate.yml         # Coordination: determine next agent during review
+|       +-- reusable/
+|           +-- lint-and-test.yml     # Shared CI template
+|           +-- agent-invoke.yml      # Shared agent invocation template
+|
++-- CLAUDE.md                         # Root-level Claude Code instructions (source of truth)
+|
++-- projects/
+|   +-- web-game/                     # TypeScript (React + Vite)
+|   |   +-- CLAUDE.md
+|   |   +-- README.md
+|   |   +-- docs/
+|   |   +-- package.json
+|   |   +-- tsconfig.json
+|   |   +-- vitest.config.ts
+|   |   +-- eslint.config.js
+|   |   +-- src/
+|   |
+|   +-- mobile-game/                  # Kotlin (Android)
+|   |   +-- CLAUDE.md
+|   |   +-- README.md
+|   |   +-- docs/
+|   |   +-- build.gradle.kts
+|   |   +-- app/
+|   |
+|   +-- api/                          # Go
+|   |   +-- CLAUDE.md
+|   |   +-- README.md
+|   |   +-- docs/
+|   |   +-- go.mod
+|   |   +-- cmd/
+|   |   +-- internal/
+|   |
+|   +-- analytics/                    # Python
+|   |   +-- CLAUDE.md
+|   |   +-- README.md
+|   |   +-- docs/
+|   |   +-- pyproject.toml
+|   |   +-- src/
+|   |
+|   +-- infra/                        # Terraform (AWS)
+|       +-- CLAUDE.md
+|       +-- README.md
+|       +-- docs/
+|       +-- main.tf
+|       +-- modules/
+|
++-- contracts/                        # Shared API specs and schemas
+|   +-- openapi/
+|   |   +-- api.yaml                  # High score API spec
+|   +-- events/
+|       +-- analytics.yaml            # Analytics event schemas
+|
++-- docs/
+|   +-- architecture/
+|   |   +-- overview.md               # System architecture overview
+|   |   +-- decisions/                # Architecture Decision Records (ADRs)
+|   |   +-- diagrams/
+|   +-- agents/
+|   |   +-- overview.md               # How the agent team works
+|   |   +-- personas/                 # Detailed persona definitions
+|   |   |   +-- architect.md
+|   |   |   +-- tech-lead.md
+|   |   |   +-- developer.md
+|   |   |   +-- acceptance-tester.md
+|   |   |   +-- unit-tester.md
+|   |   |   +-- security-reviewer.md
+|   |   |   +-- devops-engineer.md
+|   |   |   +-- operations-specialist.md
+|   |   +-- workflows/
+|   |       +-- ticket-lifecycle.md
+|   |       +-- review-protocol.md
+|   +-- guides/
+|       +-- onboarding.md
+|       +-- adding-a-project.md
+|
++-- .planning/
+|   +-- schemas/                      # JSON Schemas for all planning YAML files
+|   |   +-- ticket.schema.json
+|   |   +-- plan.schema.json
+|   +-- backlog/                      # Tickets awaiting planning (YAML files)
+|   +-- active/                       # Work in progress (plans + status tracking)
+|   +-- completed/                    # Archived completed work
+|   +-- templates/                    # Templates for tickets, plans, reviews
+|       +-- ticket.template.yaml
+|       +-- plan.template.yaml
+|
++-- scripts/
+|   +-- planning/                     # Scripts to work with planning YAML
+|   |   +-- render-plan.py            # YAML to Markdown rendering
+|   |   +-- validate.py               # Schema validation
+|   |   +-- extract-context.py        # Extract subsets for agent context
+|   |   +-- status-update.py          # Update plan status fields
+|   +-- guardrails/
+|       +-- check-coverage.sh         # Test coverage gate
+|       +-- check-docs.sh             # Documentation coverage check
+|       +-- check-architecture.sh     # Architectural fitness checks
+|
++-- guardrails/
+|   +-- coverage.yaml                 # Per-project coverage thresholds
+|   +-- linting.yaml                  # Linting configuration pointers
+|   +-- architecture.yaml             # Architectural constraints
+|   +-- security.yaml                 # Security policy and checks
+|
++-- Makefile                          # Top-level task runner
++-- README.md                         # Project overview and navigation
 ```
 
 ---
 
 ## Agent Personas
 
-Each persona is defined as a reusable identity with specific goals, constraints, and review criteria. Personas are **not** tied to specific workflows — they are skill sets that can be applied to any task. The same persona definition is used whether the agent is invoked by a GitHub Action, Cursor, or Claude Code.
+Each persona is defined as a reusable identity with specific goals, constraints, and review criteria. Personas are **not** tied to specific workflows -- they are skill sets that can be applied to any task.
 
-### Persona Definition Structure
+### Single Source of Truth
 
-Each persona is defined in three places, serving different purposes:
+Persona definitions live in one place: `docs/agents/personas/<name>.md`. These are the canonical definitions read by both humans and agents. When a GitHub Actions workflow invokes an agent, it reads the relevant persona file and passes it as part of the prompt. There is no duplication across platforms.
 
-1. **`docs/agents/personas/<name>.md`** — The canonical, detailed persona definition. Contains the persona's goals, constraints, review criteria, and examples. This is the source of truth that humans and agents both read.
+For Cursor users working manually, a minimal `.cursor/rules/global.mdc` points to these persona docs. It does not duplicate their content.
 
-2. **`.cursor/rules/personas/<name>.mdc`** — A Cursor-specific rule file that references the canonical definition. Uses glob patterns to activate when relevant files are being edited.
+### Agent Priority Order
 
-3. **Root and per-project `CLAUDE.md` files** — Contain pointers to persona docs so Claude Code agents can locate them. The actual persona instructions are passed via the `prompt` input in GitHub Actions.
+When work is available, agents operate in strict priority order (highest abstraction first). This ensures that the largest misalignments are surfaced as early as possible, before detailed work begins:
+
+| Priority | Persona | Focus |
+|----------|---------|-------|
+| 1 | Architect | Long-term technical direction, system coherence |
+| 2 | Tech Lead | Work decomposition, vertical slices, plan tracking |
+| 3 | DevOps Engineer | Development processes, CI/CD, workflow management |
+| 4 | Acceptance Tester | E2E tests from requirements (TDD) |
+| 5 | Developer | Implementation per the plan |
+| 6 | Unit Tester | Fine-grained correctness verification |
+| 7 | Security Reviewer | Security audit of changes |
+| 8 | Operations Specialist | Logging, monitoring, observability |
+
+Only one agent is active at a time, operating on a stable codebase.
 
 ### The Personas
 
-#### Architect
+#### Architect (Priority 1)
 
 **Goal:** Ensure the system's long-term technical health and coherence.
 
@@ -220,16 +212,14 @@ Each persona is defined in three places, serving different purposes:
 
 **Review Criteria:** Does this change respect module boundaries? Are dependencies flowing in the right direction? Is this consistent with existing ADRs? Will this approach scale to the known backlog?
 
----
-
-#### Tech Lead
+#### Tech Lead (Priority 2)
 
 **Goal:** Break work into small, reviewable, vertical slices and track progress.
 
 **Triggers:** Architect completes assessment of a ticket, WIP limit has capacity.
 
 **Responsibilities:**
-- Decompose tickets into milestone plans with ordered, small PRs
+- Decompose tickets into plans with ordered, small PRs
 - Each PR should be a vertical slice (independently testable and reviewable)
 - Track plan status and update planning artifacts
 - Review developer PRs for adherence to the plan
@@ -243,16 +233,34 @@ Each persona is defined in three places, serving different purposes:
 
 **Review Criteria:** Does this PR match the plan? Is it a clean vertical slice? Is it small enough to review efficiently? Does it build incrementally on prior work?
 
----
+#### DevOps Engineer (Priority 3)
 
-#### Acceptance Tester
+**Goal:** Ensure development processes, CI/CD pipelines, and workflows run smoothly and efficiently.
+
+**Triggers:** New projects added, CI failures, workflow changes needed.
+
+**Responsibilities:**
+- Maintain and improve CI/CD pipelines
+- Optimize build times and caching strategies
+- Manage GitHub Actions workflows for agent orchestration
+- Ensure development environment consistency
+- Monitor and improve the agent orchestration workflows themselves
+
+**Constraints:**
+- Cannot implement application features directly
+- Changes to workflows must be tested before merge
+- Must not break existing CI for any project
+
+**Review Criteria:** Are CI pipelines efficient? Are workflows reliable and idempotent? Is caching effective? Are build times reasonable?
+
+#### Acceptance Tester (Priority 4)
 
 **Goal:** Ensure that user-facing requirements are verifiable through end-to-end tests.
 
 **Triggers:** Tech lead merges a plan, unit tester completes test implementation.
 
 **Responsibilities:**
-- Write end-to-end / integration tests based on ticket requirements and milestone plans (TDD — tests are merged before they pass)
+- Write end-to-end / integration tests based on ticket requirements and plans (TDD -- tests are merged before they pass)
 - Review unit test coverage to ensure fine-grained tests adequately cover the acceptance criteria
 - Update test status as implementation progresses
 
@@ -263,9 +271,7 @@ Each persona is defined in three places, serving different purposes:
 
 **Review Criteria:** Do the acceptance tests cover the ticket's requirements? Are they testing behavior, not implementation? Is the unit test suite sufficient to give confidence in the acceptance criteria?
 
----
-
-#### Developer
+#### Developer (Priority 5)
 
 **Goal:** Implement functional changes that satisfy the plan, following existing patterns and architecture.
 
@@ -279,15 +285,13 @@ Each persona is defined in three places, serving different purposes:
 
 **Constraints:**
 - Must read project documentation and relevant ADRs before implementing
-- Must follow the plan — deviations require updating the plan first
+- Must follow the plan -- deviations require updating the plan first
 - PRs must be small vertical slices as defined in the plan
 - Must not write tests (that is the unit tester's job)
 
 **Review Criteria:** Does the implementation match the plan? Does it follow existing patterns? Is it a clean, small change? Does it respect module boundaries?
 
----
-
-#### Unit Tester
+#### Unit Tester (Priority 6)
 
 **Goal:** Verify the fine-grained correctness of implementations through comprehensive unit tests.
 
@@ -306,9 +310,7 @@ Each persona is defined in three places, serving different purposes:
 
 **Review Criteria:** Are edge cases covered? Are tests independent and deterministic? Do they test behavior rather than implementation details? Is coverage at or above thresholds?
 
----
-
-#### Security Reviewer
+#### Security Reviewer (Priority 7)
 
 **Goal:** Ensure that every change is secure by default.
 
@@ -328,172 +330,157 @@ Each persona is defined in three places, serving different purposes:
 
 **Review Criteria:** Are there injection risks? Are dependencies safe? Are secrets properly managed? Does the infrastructure follow least-privilege? Are auth patterns correct?
 
+#### Operations Specialist (Priority 8)
+
+**Goal:** Ensure that everything built is observable, monitorable, and operationally sound.
+
+**Triggers:** Developer PR passes reviews, infrastructure changes.
+
+**Responsibilities:**
+- Review changes for adequate logging and error reporting
+- Ensure monitoring and alerting hooks are in place
+- Verify health check endpoints exist for services
+- Review infrastructure for operational readiness (backups, scaling, failover)
+- Ensure runbooks and operational documentation are maintained
+
+**Constraints:**
+- Cannot implement application features directly
+- Must provide specific operational requirements, not vague suggestions
+- Recommendations must be proportional to the service's criticality
+
+**Review Criteria:** Is there adequate logging? Are errors reported with sufficient context? Are health checks in place? Can this be debugged in production? Is there a runbook?
+
 ---
 
 ## Orchestration: How Agents Coordinate
 
-### Dual-Platform Support
+### Platform: Claude Code via GitHub Actions
 
-The system supports both **Claude Code** (via `anthropics/claude-code-action`) and **Cursor** (via Cloud Agents API). The orchestration layer is GitHub Actions workflows that invoke agents on specific triggers.
+The system uses **Claude Code** (`anthropics/claude-code-action`) as the single orchestration platform. This avoids the maintenance burden and drift risk of supporting two platforms with different instruction formats.
 
-#### Claude Code Integration
+Key reasons for this choice:
+- Native GitHub Actions support with the `prompt` input for automation mode
+- Hierarchical `CLAUDE.md` files for context scoping (loaded automatically per working directory)
+- Well-documented with many public examples (good for agent learnability)
+- Cost controls via `--max-budget-usd` and `--max-turns` flags
 
-- GitHub Actions workflows use `anthropics/claude-code-action@v1` with a `prompt` input
-- The prompt includes the persona instructions and the specific task context
-- The action respects `CLAUDE.md` files for project-specific rules
-- Configuration: `ANTHROPIC_API_KEY` secret, optional `claude_args` for model selection and turn limits
+Cursor can still be used for ad-hoc manual work. A minimal `.cursor/rules/global.mdc` file points to the canonical persona docs in `docs/agents/personas/` so manual Cursor users have access to the same instructions.
 
-#### Cursor Integration
+### Two Coordination Workflows
 
-- GitHub Actions workflows use the Cursor Cloud Agents API (`POST https://api.cursor.com/v0/agents`)
-- The request includes the prompt (persona + task), repository reference, and target branch
-- Configuration: `CURSOR_API_KEY` secret
-- Cursor Automations can also be configured for always-on triggers (PR open, push to main, etc.)
+Rather than a separate workflow per agent, there are two coordination workflows that determine which agent acts next:
 
-#### Choosing Between Platforms
+**`on-pr-merge.yml`** -- Triggered when any PR merges. It inspects what changed and what state the planning system is in, then invokes the highest-priority agent that has work to do:
+- If a ticket was merged to backlog -> invoke Architect
+- If an architect assessment was merged -> invoke Tech Lead (if WIP allows)
+- If a plan was merged to active -> invoke Acceptance Tester
+- If acceptance tests were merged -> invoke Developer
+- If a developer PR was merged with approvals -> invoke Unit Tester, then Security Reviewer, then Operations Specialist (in priority order, one at a time)
 
-For Milestone 1, we will implement orchestration using **Claude Code Action** as the primary mechanism because:
-- It has native GitHub Actions support with mature documentation
-- It respects `CLAUDE.md` hierarchical configuration out of the box
-- It supports `prompt` input for automation mode (no @mention needed)
-- It is well-documented with many public examples (good for agent learnability)
+**`on-pr-iterate.yml`** -- Triggered when a PR receives a review or comment. It determines which agent should respond:
+- If the PR has requested changes from a reviewer -> invoke the original author agent to address feedback
+- If all required reviews are approved -> proceed to next agent in the pipeline
 
-Cursor Cloud Agents will be integrated as a secondary option in a later milestone once the workflow patterns are proven. The persona definitions and planning artifacts are platform-agnostic, so switching or mixing platforms requires only changing the invocation layer.
+Both workflows use a shared `reusable/agent-invoke.yml` template that handles:
+1. Checkout and context extraction
+2. Reading the appropriate persona definition from `docs/agents/personas/`
+3. Extracting relevant planning context via `scripts/planning/extract-context.py`
+4. Invoking Claude Code Action with the persona + context as the prompt
+5. Ensuring only one agent runs at a time (concurrency controls)
 
-### Workflow: Ticket Lifecycle
+### Serialized Execution
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         TICKET LIFECYCLE                                │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  User writes ticket ──► Merge to .planning/backlog/                    │
-│                              │                                          │
-│                              ▼                                          │
-│                    ┌─────────────────┐                                  │
-│                    │    ARCHITECT     │ Assess architectural impact      │
-│                    │   (automated)   │ Write/update ADRs if needed      │
-│                    └────────┬────────┘ Update ticket with assessment    │
-│                             │                                           │
-│                             ▼                                           │
-│                    ┌─────────────────┐                                  │
-│                    │   TECH LEAD     │ Break into milestones + PR list  │
-│                    │ (if WIP allows) │ Each PR = vertical slice         │
-│                    └────────┬────────┘ Merge plan to .planning/active/  │
-│                             │                                           │
-│            ┌────────────────┼────────────────┐                         │
-│            ▼                ▼                 ▼                          │
-│   ┌────────────────┐ ┌──────────┐  ┌──────────────────┐               │
-│   │  ACCEPTANCE    │ │ (wait)   │  │  (wait)          │               │
-│   │  TESTER        │ │          │  │                  │               │
-│   │ Write E2E tests│ │          │  │                  │               │
-│   │ (failing, TDD) │ │          │  │                  │               │
-│   └───────┬────────┘ │          │  │                  │               │
-│           │           │          │  │                  │               │
-│           ▼           ▼          │  │                  │               │
-│   ┌─────────────────────┐       │  │                  │               │
-│   │     DEVELOPER       │       │  │                  │               │
-│   │ Implement per plan  │       │  │                  │               │
-│   └──────────┬──────────┘       │  │                  │               │
-│              │                  │  │                  │               │
-│     ┌────────┴────────┐        │  │                  │               │
-│     ▼                 ▼        │  │                  │               │
-│ ┌──────────┐  ┌────────────┐   │  │                  │               │
-│ │TECH LEAD │  │ ARCHITECT  │   │  │                  │               │
-│ │review:   │  │ review:    │   │  │                  │               │
-│ │plan      │  │ architecture│  │  │                  │               │
-│ └────┬─────┘  └─────┬──────┘   │  │                  │               │
-│      │              │           │  │                  │               │
-│      └──────┬───────┘           │  │                  │               │
-│             ▼                   ▼  ▼                  │               │
-│     ┌───────────────┐  ┌──────────────────┐          │               │
-│     │SECURITY       │  │  UNIT TESTER     │          │               │
-│     │REVIEWER       │  │  Write unit tests│          │               │
-│     └───────┬───────┘  └────────┬─────────┘          │               │
-│             │                   │                     │               │
-│             └─────────┬─────────┘                     │               │
-│                       ▼                               │               │
-│              ┌─────────────────┐                      │               │
-│              │  ACCEPTANCE     │                      │               │
-│              │  TESTER         │                      │               │
-│              │  Review unit    │                      │               │
-│              │  test coverage  │                      │               │
-│              └────────┬────────┘                      │               │
-│                       │                               │               │
-│                       ▼                               │               │
-│                 PR merged ──► Acceptance tests         │               │
-│                               show incremental         │               │
-│                               improvement              │               │
-│                                                        │               │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### GitHub Actions Orchestration
-
-Each agent persona has a dedicated workflow file. Workflows are triggered by GitHub events (PR merge, label changes, issue creation) and invoke the appropriate agent with:
-
-1. The persona definition (from `docs/agents/personas/`)
-2. The relevant planning context (extracted from `.planning/` YAML files via scripts)
-3. The relevant project documentation (from the affected project's `docs/` and `CLAUDE.md`)
-
-Example flow for the Architect workflow:
+A GitHub Actions concurrency group ensures only one agent is active at a time:
 
 ```yaml
-# .github/workflows/agent-architect.yml
-name: Agent - Architect
-on:
-  pull_request:
-    types: [closed]
-    paths:
-      - '.planning/backlog/**'
-
-jobs:
-  architect-review:
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Extract new tickets
-        id: context
-        run: python scripts/planning/extract-context.py --new-tickets
-
-      - name: Invoke Architect Agent
-        uses: anthropics/claude-code-action@v1
-        with:
-          prompt: |
-            You are the Architect. Read your persona definition at
-            docs/agents/personas/architect.md.
-
-            New tickets have been added to the backlog:
-            ${{ steps.context.outputs.tickets }}
-
-            Current architecture overview: docs/architecture/overview.md
-            Current ADRs: docs/architecture/decisions/
-
-            Your task:
-            1. Assess how these new requirements fit into the existing architecture
-            2. If architectural changes are needed, write or update ADRs
-            3. Update the ticket YAML with your architectural assessment
-            4. Create a PR with your changes
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+concurrency:
+  group: agent-execution
+  cancel-in-progress: false
 ```
+
+This guarantees every agent operates on a stable, consistent codebase. If multiple triggers arrive, they queue and execute in order.
 
 ### WIP Limits
 
-The system enforces a configurable WIP (Work In Progress) limit defined in a top-level config file. Before the Tech Lead breaks down a new ticket, the orchestration workflow checks how many items are in `.planning/active/`. If at capacity, new tickets remain in the backlog until active work completes.
+The system enforces a configurable WIP (Work In Progress) limit. Before the Tech Lead breaks down a new ticket, the coordination workflow checks how many items are in `.planning/active/`. If at capacity, new tickets remain in the backlog until active work completes.
 
 ### No Agent Has Absolute Authority
 
-The workflow is designed so that no single agent can unilaterally merge or approve work:
+No single agent can unilaterally merge or approve work:
 
 - **Architect** can assess and recommend, but cannot implement
 - **Tech Lead** can plan, but cannot implement or approve security
 - **Developer** can implement, but cannot write tests or approve their own work
-- **Unit Tester** and **Acceptance Tester** verify but cannot modify implementation
+- **Testers** verify but cannot modify implementation
 - **Security Reviewer** can block but cannot implement fixes
+- **DevOps Engineer** maintains workflows but cannot approve application logic
+- **Operations Specialist** reviews operational readiness but cannot modify features
 
 Every PR requires passing CI checks (hard gates) plus reviews from the relevant personas before it can be merged. Initially, the human reviews every PR. Over time, auto-merge rules can be added for low-risk categories.
+
+---
+
+## Ticket Lifecycle
+
+```
+User writes ticket -> Merge to .planning/backlog/
+                           |
+                           v
+                  +------------------+
+                  |    ARCHITECT     |  Assess architectural impact
+                  |   (priority 1)  |  Write/update ADRs if needed
+                  +--------+---------+  Update ticket with assessment
+                           |
+                           v
+                  +------------------+
+                  |   TECH LEAD     |  Break into plan with ordered PRs
+                  |  (priority 2)   |  Each PR = vertical slice
+                  +--------+---------+  Merge plan to .planning/active/
+                           |
+                           v
+                  +------------------+
+                  | ACCEPTANCE      |  Write E2E tests (failing, TDD)
+                  | TESTER (pri 4)  |  Merge tests ahead of passing
+                  +--------+---------+
+                           |
+                           v
+                  +------------------+
+                  |   DEVELOPER     |  Implement per plan
+                  |  (priority 5)   |  Small vertical slice PRs
+                  +--------+---------+
+                           |
+              +------------+------------+
+              v            v            v
+        +-----------+ +-----------+ +-----------+
+        | TECH LEAD | | ARCHITECT | | SECURITY  |
+        | review:   | | review:   | | REVIEWER  |
+        | plan      | | arch      | | (pri 7)   |
+        +-----------+ +-----------+ +-----------+
+              |            |            |
+              +------+-----+-----+------+
+                     |           |
+                     v           v
+              +-----------+ +-----------+
+              | UNIT      | | OPS       |
+              | TESTER    | | SPECIALIST|
+              | (pri 6)   | | (pri 8)   |
+              +-----------+ +-----------+
+                     |           |
+                     +-----+-----+
+                           |
+                           v
+                  +------------------+
+                  | ACCEPTANCE      |
+                  | TESTER          |
+                  | Review unit     |
+                  | test coverage   |
+                  +--------+---------+
+                           |
+                           v
+                     PR merged
+                     Acceptance tests show
+                     incremental improvement
+```
 
 ---
 
@@ -503,12 +490,14 @@ Every PR requires passing CI checks (hard gates) plus reviews from the relevant 
 
 All planning artifacts use YAML files validated against JSON Schemas. This enables:
 
-- **Machine-readable status tracking** — workflows can parse and route work automatically
-- **Subset extraction** — scripts can pull only relevant context for each agent, avoiding context bloat
-- **Schema validation in CI** — invalid planning files are caught before merge
-- **Markdown rendering** — scripts convert YAML to human-readable markdown for review
+- **Machine-readable status tracking** -- workflows can parse and route work automatically
+- **Subset extraction** -- scripts can pull only relevant context for each agent, avoiding context bloat
+- **Schema validation in CI** -- invalid planning files are caught before merge
+- **Markdown rendering** -- scripts convert YAML to human-readable markdown for review
 
-### Ticket Schema (`.planning/schemas/ticket.schema.json`)
+### Ticket Schema
+
+A plan is a set of milestones, and milestones contain ordered PRs. Plans and tickets are separate documents because they have different lifecycles (a ticket exists in the backlog before any plan is created), but a plan always references its parent ticket.
 
 ```yaml
 # Example: .planning/backlog/001-basic-minesweeper-web.yaml
@@ -541,7 +530,7 @@ architectural_assessment:
   adrs_created: []
   adrs_updated: []
 
-plan_reference: ""  # Link to the plan in .planning/active/ once created
+plan_reference: ""  # Path to plan in .planning/active/ once created
 ```
 
 ### Plan Schema
@@ -560,21 +549,17 @@ milestones:
     pull_requests:
       - id: "001-M1-PR1"
         title: "Game state model and mine placement"
-        status: merged  # planned | in-progress | review | merged
+        status: merged
         branch: "feat/001-m1-game-state"
-        description: "Implement core data structures for game board, cell state, and random mine placement"
+        description: "Core data structures for game board, cell state, mine placement"
         estimated_lines: 150
-        acceptance_tests: []
-        unit_tests: []
 
       - id: "001-M1-PR2"
         title: "Cell reveal logic with flood fill"
         status: in-progress
         branch: "feat/001-m1-reveal"
-        description: "Implement cell reveal including recursive reveal for zero-count cells"
+        description: "Cell reveal including recursive reveal for zero-count cells"
         estimated_lines: 120
-        acceptance_tests: []
-        unit_tests: []
 
   - id: "001-M2"
     title: "Web UI rendering"
@@ -584,22 +569,18 @@ milestones:
         title: "Grid component with cell rendering"
         status: planned
         branch: "feat/001-m2-grid"
-        description: "React component for the game grid, rendering cells based on game state"
+        description: "React component for the game grid"
         estimated_lines: 200
-        acceptance_tests: []
-        unit_tests: []
 ```
 
 ### Context Extraction
 
-The `scripts/planning/extract-context.py` script produces filtered views of planning data for each agent:
+The `scripts/planning/extract-context.py` script produces filtered views of planning data for each agent. This prevents any agent from being overwhelmed with irrelevant context:
 
-- **Architect** gets: all backlog tickets, current architecture docs, active plan summaries
-- **Tech Lead** gets: assessed tickets, current active plans (for WIP counting), architecture overview
-- **Developer** gets: their assigned PR details, the plan context, relevant project docs
+- **Architect** gets: all backlog tickets, architecture docs, active plan summaries
+- **Tech Lead** gets: assessed tickets, active plans (for WIP counting), architecture overview
+- **Developer** gets: their assigned PR details, plan context, relevant project docs
 - **Tester** gets: ticket acceptance criteria, the plan, current test coverage data
-
-This prevents any agent from being overwhelmed with irrelevant planning context.
 
 ---
 
@@ -611,47 +592,38 @@ Documentation is structured so that an agent working on a specific project or ta
 
 ### Layer 1: Navigation (always loaded)
 
-- **Root `README.md`** — Project overview, directory map, how to navigate
-- **Root `CLAUDE.md`** — Universal rules, project index with one-line descriptions, pointers to deeper docs
+- **Root `README.md`** -- Project overview, directory map, how to navigate
+- **Root `CLAUDE.md`** -- Universal rules, project index with one-line descriptions, pointers to deeper docs
 
 These files are kept under 200 lines each. They tell the agent *where to look*, not *what to know*.
 
 ### Layer 2: Domain Documentation (loaded per-project)
 
-- **`projects/<name>/README.md`** — Project-specific overview, tech stack, how to build/test/run
-- **`projects/<name>/CLAUDE.md`** — Project-specific agent instructions (patterns to follow, key files, gotchas)
-- **`projects/<name>/docs/`** — Detailed project documentation (API docs, component guides, etc.)
+- **`projects/<name>/README.md`** -- Project overview, tech stack, how to build/test/run
+- **`projects/<name>/CLAUDE.md`** -- Project-specific agent instructions (patterns, key files, gotchas)
+- **`projects/<name>/docs/`** -- Detailed project documentation
 
 ### Layer 3: Cross-Cutting Documentation (loaded on demand)
 
-- **`docs/architecture/`** — System-level architecture, ADRs
-- **`docs/agents/`** — Persona definitions, workflows
-- **`contracts/`** — API specifications, event schemas
+- **`docs/architecture/`** -- System-level architecture, ADRs
+- **`docs/agents/`** -- Persona definitions, workflows
+- **`contracts/`** -- API specifications, event schemas
 
 ### Layer 4: Planning Context (extracted by scripts)
 
-- **`.planning/`** — YAML files that are never read directly by agents in full. Instead, `scripts/planning/extract-context.py` produces focused markdown summaries containing only what a specific agent needs for their current task.
-
-### Cursor Rules for Context Scoping
-
-`.cursor/rules/` files use glob patterns to automatically activate relevant rules:
-
-```
-# .cursor/rules/typescript.mdc — activates for all .ts/.tsx files
-# .cursor/rules/personas/developer.mdc — activates when referenced or for impl files
-```
-
-Each `.mdc` file is concise (< 50 lines) and points to the canonical docs rather than duplicating content.
+- **`.planning/`** -- YAML files that are never read directly by agents in full. Instead, `scripts/planning/extract-context.py` produces focused summaries containing only what a specific agent needs for their current task.
 
 ---
 
 ## Guardrails
 
+Guardrails are built into each project's build system using idiomatic tools for each language. The top-level `guardrails/` directory defines shared thresholds and policies that per-project CI reads from.
+
 ### Hard Gates (PR cannot merge if violated)
 
 | Guardrail | Threshold | Applies To |
 |-----------|-----------|------------|
-| Unit test coverage | ≥ 50% | All projects except infra |
+| Unit test coverage | >= 50% | All projects except infra |
 | Linting | Zero errors | All projects |
 | Type checking | Zero errors | TypeScript, Kotlin, Go |
 | Schema validation | All planning YAML valid | `.planning/` files |
@@ -663,26 +635,14 @@ Each `.mdc` file is concise (< 50 lines) and points to the canonical docs rather
 
 | Guardrail | Target | Applies To |
 |-----------|--------|------------|
-| Unit test coverage | ≥ 80% | All projects except infra |
+| Unit test coverage | >= 80% | All projects except infra |
 | Documentation coverage | All public APIs documented | All projects |
 | PR size | < 400 lines of meaningful change | All PRs |
 | Cyclomatic complexity | < 10 per function | All projects |
 | Dependency freshness | No deps > 6 months old | All projects |
 | Test execution time | < 60 seconds | Per project test suite |
 
-### Per-Project CI
-
-Each project has a dedicated CI workflow triggered by path-based filters:
-
-```yaml
-on:
-  pull_request:
-    paths:
-      - 'projects/web-game/**'
-      - 'contracts/**'  # Shared contracts affect downstream projects
-```
-
-Language-specific tooling per project:
+### Per-Project CI with Language-Idiomatic Tooling
 
 | Project | Language | Linter | Test Framework | Coverage Tool |
 |---------|----------|--------|----------------|---------------|
@@ -692,252 +652,126 @@ Language-specific tooling per project:
 | analytics | Python | ruff | pytest | coverage.py |
 | infra | Terraform | tflint + tfsec | terratest | N/A |
 
+Each project's build system (package.json scripts, gradle tasks, go makefile targets, etc.) implements these guardrails natively. The top-level `Makefile` delegates to per-project build systems.
+
 ---
 
-## Milestone 1: Scaffolding and Agent Infrastructure
+## Milestone 1: Vertical Slice -- One Project, Two Agents, End-to-End
 
-**Objective:** Set up all the scaffolding so that the agent team can begin working on Minesweeper implementation in Milestone 2. No game code is written in this milestone.
+**Objective:** Get a minimal version of the entire system running end-to-end rather than building components in isolation. By the end of this milestone, the Developer and Unit Tester agents should be able to collaborate on a PR for the web-game project, with CI enforcing guardrails.
 
-### Prerequisites
+This means we build the minimum of everything: just enough planning system to track one ticket, just enough CI to gate one project, just enough documentation for agents to navigate, and just enough orchestration to trigger two agents.
 
-- GitHub repository with Actions enabled
-- `ANTHROPIC_API_KEY` secret configured for Claude Code Action
-- Repository collaborator permissions for the GitHub App (claude-code-action)
+### Step 1: Repository Foundation and Web Game Scaffolding
 
-### Step 1: Repository Foundation
-
-**What:** Create the top-level directory structure, root configuration files, and the `Makefile`.
+**What:** Create the directory structure, root configs, and get the web-game project building with lint + test + coverage working.
 
 **Deliverables:**
-- Directory structure as specified in the Repository Structure section (empty directories with `.gitkeep` where needed)
-- Root `README.md` with project overview, directory map, and navigation guide
+- Directory structure (empty dirs with `.gitkeep` where needed)
+- Root `README.md` with project overview and navigation
 - Root `CLAUDE.md` with universal agent instructions and project index
-- `Makefile` with targets: `lint`, `test`, `coverage`, `validate-planning`, `render-plans`
-- `.gitignore` with entries for all five language ecosystems
+- `.gitignore` for all five language ecosystems
+- `Makefile` with top-level targets that delegate to per-project builds
+- `projects/web-game/` fully scaffolded: `package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `eslint.config.js`, stub `src/App.tsx` and `src/App.test.tsx`
+- `projects/web-game/README.md` and `projects/web-game/CLAUDE.md`
 
 **Acceptance criteria:**
-- All directories exist
-- `make help` lists available targets
-- README provides clear navigation to all parts of the repo
+- `make lint` passes (delegates to web-game ESLint)
+- `make test` passes (delegates to web-game Vitest)
+- `make coverage` reports a number
+- Web-game builds and runs locally
 
----
+### Step 2: CI Pipeline for Web Game
 
-### Step 2: Planning System
-
-**What:** Implement the YAML-based planning system with schemas, templates, validation, and rendering scripts.
+**What:** GitHub Actions workflow that runs lint, test, and coverage for the web-game on every PR, with hard gate enforcement.
 
 **Deliverables:**
-- JSON Schemas for ticket, plan, milestone, and review YAML files
-- Template YAML files demonstrating the correct structure
-- `scripts/planning/validate.py` — validates all YAML files against schemas
-- `scripts/planning/render-plan.py` — converts YAML plans to readable markdown
-- `scripts/planning/extract-context.py` — extracts filtered context for each persona
-- `scripts/planning/status-update.py` — updates status fields in plan YAML
-- CI workflow to validate planning YAML on every PR touching `.planning/`
+- `.github/workflows/ci-web-game.yml` with path-based triggers
+- Coverage reporting as PR comment
+- Hard gates: coverage >= 50%, lint clean, types clean
+- Soft warnings: coverage < 80%, PR size
 
 **Acceptance criteria:**
-- `make validate-planning` passes with template files
-- `make validate-planning` fails with intentionally invalid YAML
-- `make render-plans` produces readable markdown output
-- Context extraction produces different output for different personas
-- CI blocks PRs with invalid planning YAML
-
----
-
-### Step 3: Per-Project Scaffolding
-
-**What:** Set up each project with its language toolchain, empty source structure, linting, testing framework, and coverage configuration. No application code — just "hello world" level stubs that prove the toolchain works.
-
-**Deliverables for each project:**
-
-**web-game (TypeScript):**
-- `package.json` with React, Vite, Vitest, ESLint, TypeScript
-- `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `eslint.config.js`
-- Stub `src/App.tsx` and `src/App.test.tsx` that pass lint and test
-- `README.md` and `CLAUDE.md`
-
-**mobile-game (Kotlin/Android):**
-- `build.gradle.kts` with Android SDK, ktlint, detekt, JUnit 5, JaCoCo
-- Stub `MainActivity.kt` and test file
-- `README.md` and `CLAUDE.md`
-
-**api (Go):**
-- `go.mod`, `cmd/server/main.go` (hello world HTTP server)
-- `golangci-lint` configuration
-- Stub test file
-- `README.md` and `CLAUDE.md`
-
-**analytics (Python):**
-- `pyproject.toml` with ruff, pytest, coverage.py
-- Stub `src/analytics/__init__.py` and `tests/test_stub.py`
-- `README.md` and `CLAUDE.md`
-
-**infra (Terraform):**
-- `main.tf` with provider configuration (AWS)
-- `tflint` and `tfsec` configuration
-- `README.md` and `CLAUDE.md`
-
-**Acceptance criteria:**
-- Each project's `make lint` passes
-- Each project's `make test` passes
-- Each project's `make coverage` reports a number (even if 100% on stubs)
-- Each project builds independently
-
----
-
-### Step 4: CI Pipelines
-
-**What:** GitHub Actions workflows for each project (path-filtered) and for planning validation.
-
-**Deliverables:**
-- Per-project CI workflows (lint, test, coverage, build) with path-based triggers
-- Reusable workflow templates in `.github/workflows/reusable/`
-- Planning validation workflow (triggers on `.planning/` changes)
-- Coverage reporting that posts results as PR comments
-- Hard gate enforcement (coverage ≥ 50%, lint clean, types clean)
-- Soft warning reporting (coverage < 80%, PR size, complexity)
-
-**Acceptance criteria:**
-- PRs touching only `projects/web-game/` trigger only the web-game CI
-- PRs touching `contracts/` trigger CI for all downstream projects
+- PRs touching `projects/web-game/` trigger CI
 - A PR that drops coverage below 50% is blocked
 - A PR with lint errors is blocked
 - Soft warnings appear as PR comments but don't block
 
----
+### Step 3: Planning System (Minimal)
 
-### Step 5: Agent Persona Definitions and Rules
-
-**What:** Write the detailed persona definitions and configure both Cursor rules and Claude Code instructions.
+**What:** Schemas, templates, and validation for tickets and plans. Just enough to track one ticket through the system.
 
 **Deliverables:**
-- `docs/agents/personas/*.md` — detailed persona definitions (goals, constraints, triggers, review criteria, example prompts)
-- `docs/agents/overview.md` — how the agent team works, the ticket lifecycle
-- `docs/agents/workflows/ticket-lifecycle.md` — detailed workflow documentation
-- `docs/agents/workflows/review-protocol.md` — how reviews work across personas
-- `.cursor/rules/global.mdc` — universal Cursor rules
-- `.cursor/rules/{typescript,python,go,kotlin,terraform}.mdc` — per-language rules
-- `.cursor/rules/personas/*.mdc` — per-persona Cursor rules
-- Root `CLAUDE.md` updated with persona pointers
+- `.planning/schemas/ticket.schema.json` and `.planning/schemas/plan.schema.json`
+- `.planning/templates/ticket.template.yaml` and `.planning/templates/plan.template.yaml`
+- `scripts/planning/validate.py` -- validates YAML against schemas
+- `scripts/planning/extract-context.py` -- extracts filtered context per persona
+- CI validation of planning YAML (can be part of a general CI workflow)
 
 **Acceptance criteria:**
-- Each persona has a clear, non-overlapping definition
-- Cursor rules activate correctly based on glob patterns
-- Claude Code agents can locate their persona definition from the root CLAUDE.md
-- A developer following the persona docs could "act as" any persona
+- `make validate-planning` passes with template files
+- `make validate-planning` fails with intentionally invalid YAML
+- Context extraction produces different output for Developer vs. Tester personas
 
----
+### Step 4: Developer and Unit Tester Persona Definitions
 
-### Step 6: Agent Orchestration Workflows
-
-**What:** GitHub Actions workflows that invoke agents based on repository events.
+**What:** Define the two personas needed for the vertical slice, plus the minimal orchestration docs.
 
 **Deliverables:**
-- `agent-architect.yml` — triggers when tickets merge to backlog
-- `agent-tech-lead.yml` — triggers when architect assessment completes and WIP allows
-- `agent-acceptance-tester.yml` — triggers when plan merges to active
-- `agent-developer.yml` — triggers when acceptance tests merge
-- `agent-unit-tester.yml` — triggers when developer PR passes review
-- `agent-security-reviewer.yml` — triggers when developer PR passes review
-- Reusable `agent-invoke.yml` template with common setup (checkout, context extraction, agent invocation)
-- WIP limit checking logic
-- Context extraction integration (each workflow calls `extract-context.py` with the appropriate persona filter)
+- `docs/agents/personas/developer.md` -- full persona definition
+- `docs/agents/personas/unit-tester.md` -- full persona definition
+- `docs/agents/overview.md` -- brief overview of the agent team
+- `.cursor/rules/global.mdc` -- minimal Cursor rules pointing to persona docs
+- Update root `CLAUDE.md` with persona pointers
 
 **Acceptance criteria:**
-- Merging a ticket to backlog triggers the architect workflow
-- Architect completing assessment triggers the tech lead (if WIP allows)
-- The full chain can be traced: ticket → architect → tech lead → acceptance tester → developer → reviews → unit tester → acceptance review → merge
-- Each agent receives only the context relevant to their persona and task
-- Workflows are idempotent (re-running produces the same result)
+- Each persona has clear goals, constraints, triggers, and review criteria
+- An agent given the persona definition could act on it without additional context
 
----
+### Step 5: Agent Orchestration (Minimal)
 
-### Step 7: Guardrails Configuration
-
-**What:** Configure all guardrail definitions and the scripts/workflows that enforce them.
+**What:** A coordination workflow that can invoke the Developer and Unit Tester in sequence on a PR.
 
 **Deliverables:**
-- `guardrails/coverage.yaml` — per-project coverage thresholds (hard and soft)
-- `guardrails/linting.yaml` — pointers to per-project linter configs
-- `guardrails/architecture.yaml` — module boundary rules, dependency direction constraints
-- `guardrails/security.yaml` — security policies (no hardcoded secrets, dependency scanning)
-- `scripts/guardrails/check-coverage.sh` — reads thresholds from YAML, checks coverage reports
-- `scripts/guardrails/check-docs.sh` — checks documentation coverage
-- `scripts/guardrails/check-architecture.sh` — checks architectural constraints
-- Integration with CI workflows (guardrail scripts called in CI)
+- `.github/workflows/on-pr-merge.yml` -- coordination workflow (initially handling just: plan merged -> invoke Developer; developer PR merged -> invoke Unit Tester)
+- `.github/workflows/reusable/agent-invoke.yml` -- shared template for agent invocation
+- Concurrency group to ensure serialized execution
 
 **Acceptance criteria:**
-- Guardrail thresholds are defined in YAML (not hardcoded in CI)
-- `make check-guardrails` runs all checks
-- Hard gates block PRs, soft warnings are reported as comments
-- Adding a new project with its own thresholds requires only a YAML edit
+- Merging a plan triggers the Developer agent
+- Developer's merged PR triggers the Unit Tester agent
+- Only one agent runs at a time
+- Each agent receives its persona definition and relevant context
 
----
+### Step 6: End-to-End Validation
 
-### Step 8: Architecture Documentation
-
-**What:** Write the initial architecture overview and seed ADRs.
+**What:** Create a sample ticket and plan, then verify the Developer and Unit Tester can collaborate on a real (trivial) change.
 
 **Deliverables:**
-- `docs/architecture/overview.md` — system architecture (projects, how they connect, data flow)
-- `docs/architecture/decisions/001-monorepo-structure.md` — ADR for the monorepo structure
-- `docs/architecture/decisions/002-api-contract-first.md` — ADR for contract-first API design
-- `docs/architecture/decisions/003-agent-orchestration.md` — ADR for the agent orchestration approach
-- `contracts/openapi/api.yaml` — initial OpenAPI spec for the high score API (stub)
-- `contracts/events/analytics.yaml` — initial event schema for analytics (stub)
-
-**Acceptance criteria:**
-- Architecture overview covers all five projects and their relationships
-- ADRs follow the standard format (Status, Context, Decision, Consequences)
-- Contract stubs are valid OpenAPI/JSON Schema
-- An agent reading the architecture docs would understand the system well enough to implement changes
-
----
-
-### Step 9: Onboarding Documentation
-
-**What:** Write guides for humans and agents to get started with the repo.
-
-**Deliverables:**
-- `docs/guides/onboarding.md` — how to set up the repo, run builds, understand the structure
-- `docs/guides/adding-a-project.md` — how to add a new project to the monorepo
-- Updated root `README.md` with links to all documentation
-
-**Acceptance criteria:**
-- A new developer (human or AI) can go from clone to running all tests in < 10 minutes following the onboarding guide
-- The guide covers both Cursor and Claude Code setup
-
----
-
-### Step 10: End-to-End Validation
-
-**What:** Create a sample ticket and verify the full workflow triggers correctly.
-
-**Deliverables:**
-- A sample ticket in `.planning/backlog/` for a trivial change (e.g., "Update the web-game stub to display 'Minesweeper' as the page title")
-- Verify that merging the ticket triggers the architect workflow
-- Verify that the architect's assessment triggers the tech lead
+- A sample ticket in `.planning/backlog/` (e.g., "Add a page title to the web-game stub")
+- A sample plan in `.planning/active/` referencing the ticket
+- Run the Developer agent on the plan item and verify it produces a PR
+- Run the Unit Tester agent on the Developer's PR and verify it adds tests
 - Document any manual steps still needed and create follow-up tickets
 
 **Acceptance criteria:**
-- The sample ticket validates the complete pipeline from backlog to merge
-- Any failures are documented with clear remediation steps
-- The system is ready for Milestone 2: actual Minesweeper implementation
+- The two-agent collaboration produces a working, tested change
+- CI passes on the final PR
+- The process is documented for replication
 
 ---
 
-## Milestone 2 (Preview — to be detailed after Milestone 1)
+## Milestone 2 (Preview -- to be planned after Milestone 1)
 
-With scaffolding in place, the agent team begins implementing Minesweeper:
+Expand the system incrementally:
 
-1. User writes ticket: "Implement basic Minesweeper for web"
-2. Architect assesses → writes ADRs for game state architecture
-3. Tech Lead plans → breaks into milestones (game logic, UI, integration)
-4. Acceptance Tester writes E2E tests based on ticket criteria
-5. Developer implements game logic (small PRs per the plan)
-6. Reviews → Unit Tester → Security Reviewer → Acceptance Tester coverage review
-7. Repeat for each milestone until the web game is playable
-8. Extend to API (high scores), mobile (Kotlin), analytics (Python), infra (Terraform)
+1. Add remaining personas (Architect, Tech Lead, Acceptance Tester, Security Reviewer, DevOps Engineer, Operations Specialist)
+2. Expand orchestration to handle the full ticket lifecycle
+3. Scaffold remaining projects (api, mobile-game, analytics, infra)
+4. Add architecture documentation and ADRs
+5. Begin actual Minesweeper implementation via the agent team
+
+Each of these would be broken into vertical slices -- e.g., add the Architect persona and the backlog-to-assessment workflow together, then validate end-to-end before adding the Tech Lead.
 
 ---
 
@@ -945,10 +779,8 @@ With scaffolding in place, the agent team begins implementing Minesweeper:
 
 1. **Auto-merge policies:** What criteria should qualify a PR for auto-merge without human review? Candidates: documentation-only changes, test-only changes, changes below a certain size that pass all gates.
 
-2. **Agent cost controls:** Each agent invocation has a token/dollar cost. Should we set per-agent budgets? Per-ticket budgets? The `--max-budget-usd` flag in Claude Code and model selection in Cursor can help here.
+2. **Agent cost controls:** Each agent invocation has a token/dollar cost. Should we set per-agent budgets? Per-ticket budgets? The `--max-budget-usd` flag in Claude Code and model selection can help here.
 
-3. **Cursor Automations integration:** Once the Claude Code workflow is proven, we should evaluate Cursor Automations for specific tasks (e.g., Bugbot-style security review on every PR).
+3. **Cross-project changes:** When a change spans multiple projects (e.g., adding an API endpoint requires changes to the API, the contract, and the web frontend), how should the plan decompose this? Likely: contract first, then parallel implementation.
 
-4. **Cross-project changes:** When a change spans multiple projects (e.g., adding an API endpoint requires changes to the API, the contract, and the web frontend), how should the plan decompose this? Likely: contract first, then parallel implementation.
-
-5. **Game variant extensions:** The user plans to introduce curveball rules. This will test whether the architecture is flexible and whether agents handle evolving requirements gracefully.
+4. **Game variant extensions:** The user plans to introduce curveball rules. This will test whether the architecture is flexible and whether agents handle evolving requirements gracefully.

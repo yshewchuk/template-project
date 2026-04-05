@@ -68,8 +68,8 @@ Phase 1 expanded (Operator / Infra):
 - Ensure all project-specific guardrails pass: linting, type checking, tests, coverage.
 - Update project `README.md` and `CLAUDE.md` if the change introduces new patterns, commands, or key files.
 
-### Accept Loop (Not directly involved as reviewer)
-- Responds to review feedback by pushing additional commits.
+### Accept Loop (Not directly involved)
+- Does not contribute in this loop. Implementation gaps found during acceptance are addressed as new planned PRs in the Implementation loop.
 
 ### Improve Loop (Not directly involved)
 - Does not contribute but may be affected by process changes.

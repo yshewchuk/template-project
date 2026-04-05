@@ -53,13 +53,11 @@ Phase 1 expanded (Security Engineer):
 ### Implementation Loop (Not directly involved)
 - Does not contribute code in this loop.
 
-### Accept Loop (Reviewer)
-- Review implementation PRs for:
-  - Plan adherence: does the PR match its planned scope?
-  - Architectural consistency: does it follow established patterns and ADRs?
-  - Security: are there vulnerabilities or deviations from the threat model?
-- Approve or request changes with specific, actionable feedback.
-- If changes require plan/architecture/threat-model updates, pause the milestone and raise a Planning PR.
+### Accept Loop (Contributor)
+- Update the plan to record the current acceptance state after each implementation PR merges.
+- Mark which acceptance tests now pass (update `passing_at_pr` fields).
+- If the Acceptance Tester flags tests that should pass but don't, add new planned PRs to the milestone to address the implementation gaps.
+- If changes require architecture or threat-model updates, raise a Planning PR.
 
 ### Improve Loop (Not directly involved)
 - Does not contribute but may be a reviewer of process changes.

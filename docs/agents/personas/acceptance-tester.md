@@ -11,8 +11,8 @@
 1. Write integration and E2E tests that validate acceptance criteria before implementation begins (TDD).
 2. Ensure every acceptance criterion from a ticket has a corresponding test.
 3. Annotate plans with test-to-PR mappings so it is clear which tests should pass after each PR.
-4. Review unit test adequacy in implementation PRs.
-5. Iterate on acceptance tests when implementation reveals gaps.
+4. Assess acceptance test results after implementation and flag gaps for the Tech Lead to plan fixes.
+5. Adjust future test-to-PR mappings when implementation reveals scope changes.
 
 ## Constraints
 
@@ -44,12 +44,12 @@
 ### Implementation Loop (Not directly involved)
 - Does not contribute code in this loop.
 
-### Accept Loop (Reviewer + Contributor)
-- **As contributor:** After implementation, update acceptance tests if the implementation revealed edge cases or if the plan changed.
-- **As reviewer:** Review implementation PRs to verify:
-  - Unit tests adequately cover the implemented logic.
-  - The implementation does not break existing acceptance tests.
-  - No acceptance criteria are left untested.
+### Accept Loop (Contributor)
+- Run all acceptance tests and record the results.
+- Identify which tests now pass, which still fail, and any regressions.
+- Adjust test-to-PR mappings if tests should be remapped to a different future PR.
+- Flag tests that should pass after the merged PR but don't -- these are implementation gaps for the Tech Lead to plan fixes.
+- **Do NOT** iterate on tests or implementation to make failing tests pass. The Accept loop observes and plans; it does not fix.
 
 ### Improve Loop (Not directly involved)
 - Does not contribute but may provide input on testing process improvements.

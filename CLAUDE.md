@@ -24,22 +24,29 @@ This is the root instruction file for all AI agents working in this repository.
 
 Each project has its own `CLAUDE.md` with project-specific instructions.
 
-## Persona Definitions
+## Agent System
 
-See `docs/agents/personas/` for detailed persona definitions:
+See `docs/agents/overview.md` for a complete description of the agent collaboration system,
+including the PR stage model and context extraction.
+
+### Phase 1 Active Personas
+
+Four personas are active in Phase 1. See `docs/agents/personas/` for full definitions:
 - `tech-lead.md` -- Tech Lead (+ Architect + Security Engineer in Phase 1)
 - `acceptance-tester.md` -- Acceptance Tester
 - `developer.md` -- Developer (+ DevOps + Operator + Unit Tester in Phase 1)
 - `scrum-master.md` -- Scrum Master
 
-## Loop Documentation
+The Product Manager role is filled by the human user.
 
-See `docs/agents/loops/` for loop workflow documentation:
-- `planning.md` -- Planning loop
-- `verification.md` -- Verification loop
-- `implementation.md` -- Implementation loop
-- `accept.md` -- Accept loop
-- `improve.md` -- Improve loop
+## Work Cycle Documentation
+
+See `docs/agents/work-cycles/` for work cycle documentation:
+- `planning.md` -- Planning work cycle
+- `verification.md` -- Verification work cycle
+- `implementation.md` -- Implementation work cycle
+- `accept.md` -- Accept work cycle
+- `improve.md` -- Improve work cycle
 
 ## Planning Context
 

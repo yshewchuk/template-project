@@ -123,11 +123,11 @@ scrum-master:
 
 ---
 
-## The Five Loops
+## The Five Work Cycles
 
-The development process is organized into five loops. Each loop produces a specific type of PR with specific collaborators. Only one agent is active at a time within a loop, and loops execute in sequence.
+The development process is organized into five work cycles. Each work cycle produces a specific type of PR with specific collaborators. Only one agent is active at a time within a work cycle, and work cycles execute in sequence.
 
-### Loop 1: Planning
+### Work Cycle 1: Planning
 
 **Trigger:** A new ticket is posted as a PR to `.planning/backlog/`.
 
@@ -155,7 +155,7 @@ Ticket PR merged to .planning/backlog/
 Planning PR -> human review -> merge
 ```
 
-### Loop 2: Verification
+### Work Cycle 2: Verification
 
 **Trigger:** A milestone is started (plan merged, milestone set to active).
 
@@ -182,7 +182,7 @@ Milestone activated in plan
 Verification PR -> human review -> merge
 ```
 
-### Loop 3: Implementation
+### Work Cycle 3: Implementation
 
 **Trigger:** Verification PR merged. Iterates once per PR in the milestone.
 
@@ -207,10 +207,10 @@ For each PR in the milestone plan:
 [Unit Tester] -- write unit tests
     |
     v
-Implementation PR -> proceed to Accept loop
+Implementation PR -> proceed to Accept work cycle
 ```
 
-### Loop 4: Accept
+### Work Cycle 4: Accept
 
 **Trigger:** Implementation PR is ready for review.
 
@@ -238,7 +238,7 @@ Implementation PR ready
 PR approved -> merge -> next Implementation PR or milestone complete
 ```
 
-### Loop 5: Improve
+### Work Cycle 5: Improve
 
 **Trigger:** A milestone is completed (all PRs merged, acceptance tests passing).
 
@@ -270,11 +270,11 @@ Improve PR -> human review -> merge
 |   +-- ci-api.yml                 # Path-filtered CI for api
 |   +-- ci-analytics.yml           # Path-filtered CI for analytics
 |   +-- ci-infra.yml               # Path-filtered CI for infra
-|   +-- loop-planning.yml          # Planning loop orchestration
-|   +-- loop-verification.yml      # Verification loop orchestration
-|   +-- loop-implementation.yml    # Implementation loop orchestration
-|   +-- loop-accept.yml            # Accept loop orchestration
-|   +-- loop-improve.yml           # Improve loop orchestration
+|   +-- loop-planning.yml          # Planning work cycle orchestration
+|   +-- loop-verification.yml      # Verification work cycle orchestration
+|   +-- loop-implementation.yml    # Implementation work cycle orchestration
+|   +-- loop-accept.yml            # Accept work cycle orchestration
+|   +-- loop-improve.yml           # Improve work cycle orchestration
 |   +-- reusable/
 |       +-- agent-invoke.yml       # Shared agent invocation template
 |
@@ -298,7 +298,7 @@ Improve PR -> human review -> merge
 |   +-- agents/
 |   |   +-- overview.md
 |   |   +-- personas/              # One file per persona
-|   |   +-- loops/                 # One file per loop
+|   |   +-- work-cycles/           # One file per work cycle
 |   +-- guides/
 |       +-- onboarding.md
 |       +-- adding-a-project.md
@@ -390,9 +390,9 @@ milestones:
 
 Uses `anthropics/claude-code-action` as the single orchestration platform. Persona definitions in `docs/agents/personas/*.md` are the single source of truth. Cursor users get a minimal `.cursor/rules/global.mdc` pointing to these docs.
 
-### Loop Workflows
+### Work Cycle Workflows
 
-Each loop has a dedicated GitHub Actions workflow triggered by specific events:
+Each work cycle has a dedicated GitHub Actions workflow triggered by specific events:
 
 - `loop-planning.yml` -- triggered when ticket merges to backlog
 - `loop-verification.yml` -- triggered when plan merges with active milestone
@@ -426,12 +426,12 @@ Three mechanisms work together:
 
 3. **GitHub Reviews** -- Native approval mechanism for review stages. Reviewers use GitHub's approve/request-changes to signal their decision. The orchestration workflow watches for review events to advance or revert stages.
 
-#### Stage Sequences Per Loop
+#### Stage Sequences Per Work Cycle
 
-Each loop type defines an ordered sequence of personas that follows a **growing loop** pattern:
+Each work cycle defines an ordered sequence of personas that follows a **growing cycle** pattern:
 
-1. Each persona is either a **contributor** or a **reviewer** for that loop.
-2. Contributors add to the PR in order. After each contribution, all previous personas review and iterate until aligned before the loop expands.
+1. Each persona is either a **contributor** or a **reviewer** for that work cycle.
+2. Contributors add to the PR in order. After each contribution, all previous personas review and iterate until aligned before the work cycle expands.
 3. Reviewers validate the work against their area of responsibility and can request changes from contributors.
 4. If a reviewer identifies issues requiring changes to plans, architecture, or threat models, the milestone is paused and a Planning PR is raised to address the changes before the current PR resumes.
 
@@ -514,7 +514,7 @@ When a reviewer requests changes, the workflow:
 4. The contributor pushes new commits addressing the feedback
 5. The workflow advances back to the review stage
 
-This creates a tight loop between contributor and reviewer until the reviewer approves, then the PR advances to the next stage.
+This creates a tight feedback cycle between contributor and reviewer until the reviewer approves, then the PR advances to the next stage.
 
 #### Implementation Details
 
@@ -529,7 +529,7 @@ The `reusable/agent-invoke.yml` template handles stage management:
 7. On approval: advance to next stage. On request-changes: revert to contributor stage.
 8. When all stages complete: mark PR as ready to merge
 
-The stage sequence definitions live in `docs/agents/loops/<loop-name>.md` alongside the loop documentation, making them easy for the Scrum Master to adjust during Improve loops.
+The stage sequence definitions live in `docs/agents/work-cycles/<cycle-name>.md` alongside the work cycle documentation, making them easy for the Scrum Master to adjust during Improve work cycles.
 
 ---
 
@@ -585,7 +585,7 @@ Built into each project's build system with idiomatic tools. Shared thresholds i
 
 - `docs/architecture/` -- system architecture, ADRs
 - `docs/security/` -- threat model, policies
-- `docs/agents/` -- personas, loops
+- `docs/agents/` -- personas, work cycles
 - `contracts/` -- API specs, event schemas
 
 ### Layer 4: Planning (extracted by scripts)
@@ -626,29 +626,29 @@ Define Tech Lead, Acceptance Tester, Developer, Scrum Master with Phase 1 expand
 
 **Deliverables:**
 - `docs/agents/personas/{tech-lead,acceptance-tester,developer,scrum-master}.md`
-- `docs/agents/overview.md` and `docs/agents/loops/{planning,verification,implementation,accept,improve}.md`
+- `docs/agents/overview.md` and `docs/agents/work-cycles/{planning,verification,implementation,accept,improve}.md`
 - `.cursor/rules/global.mdc` and updated root CLAUDE.md
 
 **Done when:** Each persona has clear goals, constraints, ownership, triggers, and review criteria.
 
-### Step 4: Loop Orchestration Workflows
+### Step 4: Work Cycle Orchestration Workflows
 
-GitHub Actions for all five loops wired for Phase 1 agents.
+GitHub Actions for all five work cycles wired for Phase 1 agents.
 
 **Deliverables:**
 - `loop-planning.yml`, `loop-verification.yml`, `loop-implementation.yml`, `loop-accept.yml`, `loop-improve.yml`
 - `reusable/agent-invoke.yml`
 - Concurrency group for serialized execution
 
-**Done when:** Each loop triggers correctly and invokes the right agents in order.
+**Done when:** Each work cycle triggers correctly and invokes the right agents in order.
 
 ### Step 5: End-to-End Validation
 
-Run a real ticket through all five loops. The agents themselves scaffold and build the web game as the first real ticket.
+Run a real ticket through all five work cycles. The agents themselves scaffold and build the web game as the first real ticket.
 
 **Deliverables:**
 - Sample ticket and plan for web-game scaffolding
-- Observe all loops: planning, verification, implementation, accept, improve
+- Observe all work cycles: planning, verification, implementation, accept, improve
 - Document manual steps still needed
 
 **Done when:** Full cycle completes, web-game is scaffolded by the agents, CI passes, Scrum Master produces an improvement suggestion.
@@ -659,10 +659,10 @@ Run a real ticket through all five loops. The agents themselves scaffold and bui
 
 Expand incrementally, each as a vertical slice validated end-to-end:
 
-1. Split Architect from Tech Lead + add to Planning and Accept loops
-2. Split Security Engineer from Tech Lead + add to Planning and Accept loops
+1. Split Architect from Tech Lead + add to Planning and Accept work cycles
+2. Split Security Engineer from Tech Lead + add to Planning and Accept work cycles
 3. Scaffold Go API project + extend agent scope
-4. Split Unit Tester from Developer + add to Implementation loop
+4. Split Unit Tester from Developer + add to Implementation work cycle
 5. Scaffold remaining projects (mobile-game, analytics, infra)
 6. Split DevOps Engineer and Operator from Developer
 7. Begin actual Minesweeper implementation via agent team

@@ -17,7 +17,6 @@ acceptance-tester:
 developer:
   - "projects/*/src/**"
   - "projects/*/README.md"
-  - "projects/*/CLAUDE.md"
   # Phase 1 expanded scope (covers DevOps + Operator + Unit Tester):
   - "projects/*/tests/unit/**"
   - "projects/*/src/**/*.test.*"
@@ -40,5 +39,6 @@ scrum-master:
   - "docs/guides/**"
   - "CLAUDE.md"
   - "README.md"
+  - "projects/*/CLAUDE.md"
   - ".github/workflows/loop-*"
   - ".github/workflows/reusable/**"

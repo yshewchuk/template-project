@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Implement code for one planned PR from the milestone. This loop executes once per PR in the milestone plan, in order.
+Implement code for one planned PR from the milestone. The Developer posts the PR as soon as the functional code is complete and acceptance tests pass. Other contributors then layer on CI/build, operational, and unit test work.
 
 ## Trigger
 
@@ -13,22 +13,26 @@ Either:
 ## Output
 
 An Implementation PR containing:
-- Functional code implementing the planned scope
-- CI/build updates if needed
-- Logging, monitoring, and health checks where appropriate
-- Unit tests meeting coverage requirements
+- Functional code implementing the planned scope (Developer posts PR at this point)
+- CI/build updates if needed (added after initial post)
+- Logging, monitoring, and health checks where appropriate (added after initial post)
+- Unit tests meeting coverage requirements (added after initial post)
 - Updated project documentation if patterns or commands changed
 
 ## Phase 1 Flow
 
-In Phase 1, the Developer covers all contributing roles:
+In Phase 1, the Developer covers all contributing roles. The PR is posted as soon as the functional code is done:
 
 ```
 For each PR in the milestone plan:
     |
     v
-[Developer] -- implement code
-             -- update CI/build if needed (DevOps scope)
+[Developer] -- implement functional code
+             -- run acceptance tests to verify correctness
+             -- POST PR as soon as functional changes are complete
+    |
+    v
+[Developer] -- update CI/build if needed (DevOps scope)
              -- add logging/monitoring (Operator scope)
              -- write unit tests (Unit Tester scope)
     |
@@ -53,6 +57,8 @@ For each PR in the milestone plan:
     |
     v
 [Developer] -- implement functional code
+             -- run acceptance tests to verify correctness
+             -- POST PR as soon as functional changes are complete
     |
     v
 [DevOps Engineer] -- update CI/build if needed
@@ -86,38 +92,44 @@ Implementation PR -> merge -> Accept loop
 
 ### Phase 1
 
-| # | Stage | Persona | Type |
-|---|-------|---------|------|
-| 1 | Implementation (all contribute roles) | Developer | contribute |
-| 2 | Plan adherence + architecture + security | Tech Lead | review |
-| 3 | Unit test adequacy | Acceptance Tester | review |
-| 4 | Requirements satisfaction | Product Manager (human) | review |
+| # | Stage | Persona | Type | Notes |
+|---|-------|---------|------|-------|
+| 1 | Functional code | Developer | contribute | **PR posted after this stage** |
+| 2 | CI/build, operational, unit tests | Developer | contribute | DevOps + Operator + Unit Tester scope |
+| 3 | Plan adherence + architecture + security | Tech Lead | review | |
+| 4 | Unit test adequacy | Acceptance Tester | review | |
+| 5 | Requirements satisfaction | Product Manager (human) | review | |
 
 ### Full Team (Phase 2+)
 
-| # | Stage | Persona | Type |
-|---|-------|---------|------|
-| 1 | Functional code | Developer | contribute |
-| 2 | CI/build updates | DevOps Engineer | contribute |
-| 3 | Operational readiness | Operator | contribute |
-| 4 | Unit tests | Unit Tester | contribute |
-| 5 | Plan adherence | Tech Lead | review |
-| 6 | Security review | Security Engineer | review |
-| 7 | Architecture review | Architect | review |
-| 8 | Test adequacy | Acceptance Tester | review |
-| 9 | Requirements review | Product Manager (human) | review |
+| # | Stage | Persona | Type | Notes |
+|---|-------|---------|------|-------|
+| 1 | Functional code | Developer | contribute | **PR posted after this stage** |
+| 2 | CI/build updates | DevOps Engineer | contribute | |
+| 3 | Operational readiness | Operator | contribute | |
+| 4 | Unit tests | Unit Tester | contribute | |
+| 5 | Plan adherence | Tech Lead | review | |
+| 6 | Security review | Security Engineer | review | |
+| 7 | Architecture review | Architect | review | |
+| 8 | Test adequacy | Acceptance Tester | review | |
+| 9 | Requirements review | Product Manager (human) | review | |
 
 ## Developer Checklist (Phase 1)
 
-Before pushing the Implementation PR:
+Before posting the PR (functional code complete):
 
 - [ ] Code implements exactly the planned PR scope (no more, no less)
+- [ ] Acceptance tests for this PR pass
 - [ ] Linting passes with zero errors
 - [ ] Type checking passes with zero errors
-- [ ] Unit tests pass
-- [ ] Coverage meets the hard gate (>= 50%)
 - [ ] Build succeeds cleanly
 - [ ] No critical CVEs in new dependencies
+
+After posting the PR, before handing off to reviewers:
+
+- [ ] CI/build workflows updated if the implementation requires it
+- [ ] Logging, monitoring, and health checks added where appropriate
+- [ ] Unit tests written; coverage meets the hard gate (>= 50%)
 - [ ] Project `README.md` updated if new commands or patterns were introduced
 - [ ] Project `CLAUDE.md` updated if new key files or conventions were added
 

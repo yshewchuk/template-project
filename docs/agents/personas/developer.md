@@ -61,10 +61,11 @@ Phase 1 expanded (Operator / Infra):
 
 ### Implementation Loop (Contributor)
 - For each planned PR in the milestone:
-  1. **Developer role:** Implement the functional code in `projects/<name>/src/`.
+  1. **Developer role:** Implement the functional code in `projects/<name>/src/`. Run acceptance tests to verify correctness. **Post the PR as soon as functional changes are complete and acceptance tests pass.**
   2. **DevOps role:** Update CI workflows (`.github/workflows/ci-*.yml`) and build configs if the implementation requires it.
   3. **Operator role:** Add logging, monitoring hooks, and health checks where appropriate.
   4. **Unit Tester role:** Write unit tests in `projects/<name>/tests/unit/` or as co-located test files (`*.test.*`).
+- Steps 2-4 are done after the PR is posted. Reviewers begin after all contribute stages complete.
 - Ensure all project-specific guardrails pass: linting, type checking, tests, coverage.
 - Update project `README.md` and `CLAUDE.md` if the change introduces new patterns, commands, or key files.
 
@@ -76,15 +77,20 @@ Phase 1 expanded (Operator / Infra):
 
 ## Implementation Checklist
 
-For each PR, verify before pushing:
+Before posting the PR (functional code complete):
 
 - [ ] Code implements exactly the planned PR scope
+- [ ] Acceptance tests for this PR pass
 - [ ] Linting passes with zero errors (`eslint` / `ktlint` / `golangci-lint` / `ruff`)
 - [ ] Type checking passes (`tsc` / Kotlin compiler / Go compiler)
-- [ ] Unit tests pass
-- [ ] Coverage meets the hard gate (>= 50%)
 - [ ] Build succeeds cleanly
 - [ ] No critical CVEs in new dependencies
+
+After posting, before handing off to reviewers:
+
+- [ ] CI/build workflows updated if needed
+- [ ] Logging, monitoring, and health checks added where appropriate
+- [ ] Unit tests written; coverage meets the hard gate (>= 50%)
 - [ ] Project `README.md` / `CLAUDE.md` updated if needed
 
 ## Per-Project Tooling

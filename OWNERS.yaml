@@ -40,5 +40,5 @@ scrum-master:
   - "CLAUDE.md"
   - "README.md"
   - "projects/*/CLAUDE.md"
-  - ".github/workflows/loop-*"
+  - ".github/workflows/work-cycle-*"
   - ".github/workflows/reusable/**"

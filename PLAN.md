@@ -117,7 +117,7 @@ scrum-master:
   - "docs/guides/**"
   - "CLAUDE.md"
   - "README.md"
-  - ".github/workflows/loop-*"
+  - ".github/workflows/work-cycle-*"
   - ".github/workflows/reusable/**"
 ```
 
@@ -270,11 +270,11 @@ Improve PR -> human review -> merge
 |   +-- ci-api.yml                 # Path-filtered CI for api
 |   +-- ci-analytics.yml           # Path-filtered CI for analytics
 |   +-- ci-infra.yml               # Path-filtered CI for infra
-|   +-- loop-planning.yml          # Planning work cycle orchestration
-|   +-- loop-verification.yml      # Verification work cycle orchestration
-|   +-- loop-implementation.yml    # Implementation work cycle orchestration
-|   +-- loop-accept.yml            # Accept work cycle orchestration
-|   +-- loop-improve.yml           # Improve work cycle orchestration
+|   +-- work-cycle-planning.yml          # Planning work cycle orchestration
+|   +-- work-cycle-verification.yml      # Verification work cycle orchestration
+|   +-- work-cycle-implementation.yml    # Implementation work cycle orchestration
+|   +-- work-cycle-accept.yml            # Accept work cycle orchestration
+|   +-- work-cycle-improve.yml           # Improve work cycle orchestration
 |   +-- reusable/
 |       +-- agent-invoke.yml       # Shared agent invocation template
 |
@@ -394,11 +394,11 @@ Uses `anthropics/claude-code-action` as the single orchestration platform. Perso
 
 Each work cycle has a dedicated GitHub Actions workflow triggered by specific events:
 
-- `loop-planning.yml` -- triggered when ticket merges to backlog
-- `loop-verification.yml` -- triggered when plan merges with active milestone
-- `loop-implementation.yml` -- triggered when verification PR merges
-- `loop-accept.yml` -- triggered when implementation PR is ready
-- `loop-improve.yml` -- triggered when milestone completes
+- `work-cycle-planning.yml` -- triggered when ticket merges to backlog
+- `work-cycle-verification.yml` -- triggered when plan merges with active milestone
+- `work-cycle-implementation.yml` -- triggered when verification PR merges
+- `work-cycle-accept.yml` -- triggered when implementation PR is ready
+- `work-cycle-improve.yml` -- triggered when milestone completes
 
 All use `reusable/agent-invoke.yml` which handles checkout, persona loading, context extraction, ownership validation, and Claude Code invocation.
 
@@ -636,7 +636,7 @@ Define Tech Lead, Acceptance Tester, Developer, Scrum Master with Phase 1 expand
 GitHub Actions for all five work cycles wired for Phase 1 agents.
 
 **Deliverables:**
-- `loop-planning.yml`, `loop-verification.yml`, `loop-implementation.yml`, `loop-accept.yml`, `loop-improve.yml`
+- `work-cycle-planning.yml`, `work-cycle-verification.yml`, `work-cycle-implementation.yml`, `work-cycle-accept.yml`, `work-cycle-improve.yml`
 - `reusable/agent-invoke.yml`
 - Concurrency group for serialized execution
 

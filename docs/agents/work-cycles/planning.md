@@ -1,4 +1,4 @@
-# Planning Loop
+# Planning Work Cycle
 
 ## Purpose
 
@@ -16,9 +16,9 @@ A Planning PR containing:
 - Updated contract definitions in `contracts/` (if APIs are affected)
 - A technical plan in `.planning/plans/` with milestones, ordered PRs, estimates, and branch names
 
-## Phase 1 Flow
+## Flow
 
-In Phase 1, the Tech Lead covers all contributing roles (Architect, Security Engineer):
+The Tech Lead covers all contributing roles (Architect, Security Engineer):
 
 ```
 Ticket PR merged to .planning/backlog/
@@ -32,49 +32,16 @@ Ticket PR merged to .planning/backlog/
 Planning PR -> human (PM) review -> merge
 ```
 
-## Full Team Flow (Phase 2+)
-
-```
-Ticket PR merged to .planning/backlog/
-    |
-    v
-[Product Manager] -- order backlog, confirm priorities
-    |
-    v
-[Architect] -- update architecture docs, write ADRs, update contracts
-    |
-    v
-[Security Engineer] -- update threat model, security assessment
-    |
-    v
-[Tech Lead] -- create plan: milestones, ordered PRs, estimates
-    |
-    v
-Planning PR -> human review -> merge
-```
-
 ## Stage Sequence
-
-### Phase 1 (Collapsed)
 
 | # | Stage | Persona | Type |
 |---|-------|---------|------|
 | 1 | Requirements & planning | Tech Lead | contribute |
 | 2 | Final review | Product Manager (human) | review |
 
-### Full Team (Phase 2+)
+## Tech Lead Checklist
 
-| # | Stage | Persona | Type |
-|---|-------|---------|------|
-| 1 | Backlog ordering | Product Manager | contribute |
-| 2 | Architecture assessment | Architect | contribute |
-| 3 | Security assessment | Security Engineer | contribute |
-| 4 | Technical planning | Tech Lead | contribute |
-| 5 | Final review | Product Manager (human) | review |
-
-## Tech Lead Checklist (Phase 1)
-
-When executing this loop, the Tech Lead must:
+When executing this work cycle, the Tech Lead must:
 
 - [ ] Read the ticket's acceptance criteria and description
 - [ ] Assess security implications; update `docs/security/threat-model.md` if needed

@@ -37,29 +37,29 @@ Phase 1 expanded (Security Engineer):
 - `docs/security/**`
 - `guardrails/security.yaml`
 
-## Loop Participation
+## Work Cycle Participation
 
-### Planning Loop (Contributor)
+### Planning Work Cycle (Contributor)
 - Receive ticket from Product Manager.
 - Assess security implications and update the threat model in `docs/security/`.
 - Assess architectural implications, write ADRs to `docs/architecture/` if needed, update contract definitions in `contracts/` if APIs are affected.
 - Create a technical plan in `.planning/plans/` with milestones, PR ordering, estimated line counts, and branch names.
 - Each milestone should include acceptance test mappings.
 
-### Verification Loop (Contributor)
+### Verification Work Cycle (Contributor)
 - Review the milestone being started and confirm the PR ordering is correct.
 - Update the plan with test-to-PR mappings after the Acceptance Tester writes tests.
 
-### Implementation Loop (Not directly involved)
-- Does not contribute code in this loop.
+### Implementation Work Cycle (Not directly involved)
+- Does not contribute code in this work cycle.
 
-### Accept Loop (Contributor)
+### Accept Work Cycle (Contributor)
 - Update the plan to record the current acceptance state after each implementation PR merges.
 - Mark which acceptance tests now pass (update `passing_at_pr` fields).
 - If the Acceptance Tester flags tests that should pass but don't, add new planned PRs to the milestone to address the implementation gaps.
 - If changes require architecture or threat-model updates, raise a Planning PR.
 
-### Improve Loop (Not directly involved)
+### Improve Work Cycle (Not directly involved)
 - Does not contribute but may be a reviewer of process changes.
 
 ## Review Criteria

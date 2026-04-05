@@ -28,12 +28,12 @@
 - `projects/*/tests/integration/**`
 - `projects/*/tests/e2e/**`
 
-## Loop Participation
+## Work Cycle Participation
 
-### Planning Loop (Not directly involved)
-- Not a participant in the Planning loop.
+### Planning Work Cycle (Not directly involved)
+- Not a participant in the Planning work cycle.
 
-### Verification Loop (Contributor)
+### Verification Work Cycle (Contributor)
 - Receive the activated milestone and its plan from the Tech Lead.
 - For each acceptance criterion, write one or more integration or E2E tests.
 - Place tests in the appropriate `projects/<name>/tests/integration/` or `projects/<name>/tests/e2e/` directory.
@@ -41,17 +41,17 @@
 - All tests must fail at this point (no implementation exists yet).
 - Annotate the plan (via the Tech Lead) with test-to-PR mappings: which tests are expected to start passing after which PR.
 
-### Implementation Loop (Not directly involved)
-- Does not contribute code in this loop.
+### Implementation Work Cycle (Not directly involved)
+- Does not contribute code in this work cycle.
 
-### Accept Loop (Contributor)
+### Accept Work Cycle (Contributor)
 - Run all acceptance tests and record the results.
 - Identify which tests now pass, which still fail, and any regressions.
 - Adjust test-to-PR mappings if tests should be remapped to a different future PR.
 - Flag tests that should pass after the merged PR but don't -- these are implementation gaps for the Tech Lead to plan fixes.
-- **Do NOT** iterate on tests or implementation to make failing tests pass. The Accept loop observes and plans; it does not fix.
+- **Do NOT** iterate on tests or implementation to make failing tests pass. The Accept work cycle observes and plans; it does not fix.
 
-### Improve Loop (Not directly involved)
+### Improve Work Cycle (Not directly involved)
 - Does not contribute but may provide input on testing process improvements.
 
 ## Review Criteria

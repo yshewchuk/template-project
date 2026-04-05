@@ -1,10 +1,10 @@
-# Accept Loop
+# Accept Work Cycle
 
 ## Purpose
 
 Assess the current state of acceptance tests after an implementation PR merges. Record which tests now pass, adjust expectations for future tests, and update the plan to request additional implementation work if tests that should be passing are not.
 
-Contributors in this loop do **not** iterate to make failing tests pass. They observe, record, and plan.
+Contributors in this work cycle do **not** iterate to make failing tests pass. They observe, record, and plan.
 
 ## Trigger
 
@@ -17,14 +17,13 @@ An Acceptance PR containing:
 - Plan updates recording current acceptance state and any requested implementation changes
 - New planned PRs if the implementation needs further work to satisfy acceptance criteria
 
-## Phase 1 Flow
+## Flow
 
 ```
 Implementation PR merged
     |
     v
 [Developer] -- update build/CI for acceptance tests if needed
-               (Phase 1: DevOps scope covered by Developer)
     |
     v
 [Acceptance Tester] -- run acceptance tests, record results
@@ -42,46 +41,11 @@ Implementation PR merged
 Acceptance PR -> merge
     |
     v
-Remaining PRs in milestone? -- yes --> Implementation loop (next PR)
-                             -- no  --> Milestone complete -> Improve loop
-```
-
-## Full Team Flow (Phase 2+)
-
-```
-Implementation PR merged
-    |
-    v
-[DevOps Engineer] -- update build/CI for acceptance tests if needed
-    |
-    v
-[Acceptance Tester] -- run acceptance tests, record results
-                    -- adjust future test expectations if needed
-    |
-    v
-[Tech Lead] -- update plan with acceptance state
-             -- add new planned PRs if implementation gaps found
-    |
-    v
-[Security Engineer] -- review security acceptance coverage
-    |
-    v
-[Architect] -- review test infrastructure alignment
-    |
-    v
-[Product Manager] -- review acceptance results and plan updates
-    |
-    v
-Acceptance PR -> merge
-    |
-    v
-Remaining PRs in milestone? -- yes --> Implementation loop (next PR)
-                             -- no  --> Milestone complete -> Improve loop
+Remaining PRs in milestone? -- yes --> Implementation work cycle (next PR)
+                             -- no  --> Milestone complete -> Improve work cycle
 ```
 
 ## Stage Sequence
-
-### Phase 1
 
 | # | Stage | Persona | Type |
 |---|-------|---------|------|
@@ -90,20 +54,9 @@ Remaining PRs in milestone? -- yes --> Implementation loop (next PR)
 | 3 | Plan updates | Tech Lead | contribute |
 | 4 | Final review | Product Manager (human) | review |
 
-### Full Team (Phase 2+)
-
-| # | Stage | Persona | Type |
-|---|-------|---------|------|
-| 1 | Build/CI updates | DevOps Engineer | contribute |
-| 2 | Acceptance assessment | Acceptance Tester | contribute |
-| 3 | Plan updates | Tech Lead | contribute |
-| 4 | Security acceptance review | Security Engineer | review |
-| 5 | Architecture review | Architect | review |
-| 6 | Final review | Product Manager (human) | review |
-
 ## Acceptance Tester Checklist
 
-When running this loop:
+When running this work cycle:
 
 - [ ] Run all acceptance tests for the milestone
 - [ ] Record which tests now pass and which still fail
@@ -112,7 +65,7 @@ When running this loop:
 - [ ] For tests that aren't expected to pass yet: confirm they still fail for the right reasons
 - [ ] Adjust test-to-PR mappings if tests should be remapped to a different future PR
 
-**Do NOT** fix implementation code, iterate on failing tests to make them pass, or modify test assertions to match incorrect behavior.
+**Do NOT** fix implementation code or iterate on failing tests to make them pass. Test assertions may be adjusted only if the implementation behavior is demonstrably correct and the original test expectation was wrong -- this should be rare and must be explicitly justified in the PR.
 
 ## Plan Update Rules
 
@@ -125,18 +78,18 @@ The Tech Lead updates the plan to reflect:
 
 ## Key Principle
 
-The Accept loop is an **observation and planning** step, not an **iteration** step. If the implementation is incomplete or incorrect, the remedy is a new planned PR in the Implementation loop -- not rework within the Accept loop.
+The Accept work cycle is an **observation and planning** step, not an **iteration** step. If the implementation is incomplete or incorrect, the remedy is a new planned PR in the Implementation work cycle -- not rework within the Accept work cycle.
 
 ## Milestone Completion
 
 When all PRs in a milestone are merged and all acceptance tests pass:
 1. The milestone status is updated to `completed`
-2. The Improve loop is triggered
-3. The next milestone (if any) can begin its Verification loop
+2. The Improve work cycle is triggered
+3. The next milestone (if any) can begin its Verification work cycle
 
 ## Labels
 
-- `stage/developer` -- Developer updating build/CI (Phase 1)
+- `stage/developer` -- Developer updating build/CI
 - `stage/acceptance-tester` -- Acceptance Tester assessing tests
 - `stage/tech-lead` -- Tech Lead updating plan
 - `stage/review-product-manager` -- PM reviewing results

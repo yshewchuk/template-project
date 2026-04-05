@@ -6,7 +6,7 @@ An example monorepo demonstrating how a team of specialized AI agents can collab
 
 ```
 /
-├── .github/workflows/          # CI and loop orchestration workflows
+├── .github/workflows/          # CI and work cycle orchestration workflows
 │   └── reusable/               # Shared workflow templates
 ├── projects/
 │   ├── web-game/               # TypeScript (React + Vite)
@@ -20,9 +20,9 @@ An example monorepo demonstrating how a team of specialized AI agents can collab
 ├── docs/
 │   ├── architecture/           # System architecture, ADRs
 │   ├── security/               # Threat model, security policies
-│   ├── agents/                 # Persona definitions and loop docs
+│   ├── agents/                 # Persona definitions and work cycle docs
 │   │   ├── personas/
-│   │   └── loops/
+│   │   └── work-cycles/
 │   └── guides/                 # Onboarding and how-to guides
 ├── .planning/
 │   ├── schemas/                # JSON Schemas for ticket + plan YAML
@@ -60,7 +60,7 @@ An example monorepo demonstrating how a team of specialized AI agents can collab
 | Scrum Master | Agent definitions, workflows, process improvement |
 | Product Manager | Product backlog and priorities (human) |
 
-## Development Loops
+## Development Work Cycles
 
 1. **Planning** -- ticket assessment, architecture, security review, technical planning
 2. **Verification** -- failing acceptance tests (TDD), build/CI setup

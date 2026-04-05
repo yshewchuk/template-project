@@ -1,4 +1,4 @@
-# Improve Loop
+# Improve Work Cycle
 
 ## Purpose
 
@@ -12,15 +12,13 @@ A milestone is completed: all PRs are merged and all acceptance tests pass.
 
 An Improvement PR containing:
 - Updated persona definitions (if role boundaries were unclear)
-- Updated loop workflows (if stage sequences were suboptimal)
+- Updated work cycle workflows (if stage sequences were suboptimal)
 - Updated planning schemas (if YAML structure caused confusion)
 - Updated `OWNERS.yaml` (if ownership boundaries need adjustment)
 - Updated guides and documentation
 - Retrospective notes documenting findings and rationale
 
 ## Flow
-
-The Improve loop has the same structure in Phase 1 and beyond, since the Scrum Master is a dedicated role from day one.
 
 ```
 Milestone complete (all PRs merged, acceptance tests passing)
@@ -35,7 +33,6 @@ Milestone complete (all PRs merged, acceptance tests passing)
     |
     v
 [Tech Lead] -- review against technical workflow
-               (Phase 1: also covers Architect + Security review)
     |
     v
 Improvement PR -> merge
@@ -43,27 +40,15 @@ Improvement PR -> merge
 
 ## Stage Sequence
 
-### Phase 1
-
 | # | Stage | Persona | Type |
 |---|-------|---------|------|
 | 1 | Retrospective & improvements | Scrum Master | contribute |
 | 2 | Product workflow review | Product Manager (human) | review |
 | 3 | Technical workflow review | Tech Lead | review |
 
-### Full Team (Phase 2+)
-
-| # | Stage | Persona | Type |
-|---|-------|---------|------|
-| 1 | Retrospective & improvements | Scrum Master | contribute |
-| 2 | Product workflow review | Product Manager (human) | review |
-| 3 | Architecture workflow review | Architect | review |
-| 4 | Security workflow review | Security Engineer | review |
-| 5 | Technical workflow review | Tech Lead | review |
-
 ## Scrum Master Checklist
 
-When executing this loop:
+When executing this work cycle:
 
 ### Data Collection
 - [ ] Review all PR threads from the completed milestone
@@ -79,13 +64,14 @@ When executing this loop:
 
 ### Improvements
 - [ ] Update persona definitions if role boundaries were unclear
-- [ ] Refine loop stage sequences if they were suboptimal
+- [ ] Refine work cycle stage sequences if they were suboptimal
 - [ ] Adjust planning schemas if YAML structure caused confusion
 - [ ] Update `OWNERS.yaml` if ownership boundaries need adjustment
 - [ ] Improve context extraction if agents had insufficient or excessive context
 - [ ] Update `docs/guides/onboarding.md` with lessons learned
 - [ ] Update root `README.md` if repository structure changed
 - [ ] Update root `CLAUDE.md` if universal rules need refinement
+- [ ] Update `projects/*/CLAUDE.md` if per-project agent instructions need refinement
 
 ### Documentation
 - [ ] Write retrospective notes with evidence-backed findings
@@ -108,7 +94,7 @@ When executing this loop:
 Process changes must be backwards-compatible:
 - Schema changes must not invalidate existing valid YAML without a documented migration
 - Persona changes must preserve the ownership invariant
-- Loop changes must not break existing GitHub Actions workflows without updating them
+- Work cycle changes must not break existing GitHub Actions workflows without updating them
 
 ## Labels
 

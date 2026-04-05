@@ -39,14 +39,14 @@ Four personas are active in Phase 1. See `docs/agents/personas/` for full defini
 
 The Product Manager role is filled by the human user.
 
-## Loop Documentation
+## Work Cycle Documentation
 
-See `docs/agents/loops/` for loop workflow documentation:
-- `planning.md` -- Planning loop
-- `verification.md` -- Verification loop
-- `implementation.md` -- Implementation loop
-- `accept.md` -- Accept loop
-- `improve.md` -- Improve loop
+See `docs/agents/work-cycles/` for work cycle documentation:
+- `planning.md` -- Planning work cycle
+- `verification.md` -- Verification work cycle
+- `implementation.md` -- Implementation work cycle
+- `accept.md` -- Accept work cycle
+- `improve.md` -- Improve work cycle
 
 ## Planning Context
 

@@ -1,4 +1,4 @@
-# Implementation Loop
+# Implementation Work Cycle
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Implement code for one planned PR from the milestone. The Developer posts the PR
 
 Either:
 1. **Verification PR merged** -- starts the first implementation PR in the milestone.
-2. **Acceptance PR merged** -- continues with the next planned PR if the milestone still has remaining PRs (including any new PRs added by the Accept loop to address implementation gaps).
+2. **Acceptance PR merged** -- continues with the next planned PR if the milestone still has remaining PRs (including any new PRs added by the Accept work cycle to address implementation gaps).
 
 ## Output
 
@@ -19,38 +19,9 @@ An Implementation PR containing:
 - Unit tests meeting coverage requirements (added after initial post)
 - Updated project documentation if patterns or commands changed
 
-## Phase 1 Flow
+## Flow
 
-In Phase 1, the Developer covers all contributing roles. The PR is posted as soon as the functional code is done:
-
-```
-For each PR in the milestone plan:
-    |
-    v
-[Developer] -- implement functional code
-             -- run acceptance tests to verify correctness
-             -- POST PR as soon as functional changes are complete
-    |
-    v
-[Developer] -- update CI/build if needed (DevOps scope)
-             -- add logging/monitoring (Operator scope)
-             -- write unit tests (Unit Tester scope)
-    |
-    v
-[Tech Lead] -- review for plan adherence,
-               architecture, and security
-    |
-    v
-[Acceptance Tester] -- review unit test adequacy
-    |
-    v
-[Product Manager] -- review requirements satisfaction
-    |
-    v
-Implementation PR -> merge -> Accept loop
-```
-
-## Full Team Flow (Phase 2+)
+The Developer covers all contributing roles (DevOps Engineer, Operator, Unit Tester). The PR is posted as soon as the functional code is done:
 
 ```
 For each PR in the milestone plan:
@@ -61,22 +32,12 @@ For each PR in the milestone plan:
              -- POST PR as soon as functional changes are complete
     |
     v
-[DevOps Engineer] -- update CI/build if needed
+[Developer] -- update CI/build if needed
+             -- add logging/monitoring
+             -- write unit tests
     |
     v
-[Operator] -- add logging, monitoring, health checks
-    |
-    v
-[Unit Tester] -- write unit tests
-    |
-    v
-[Tech Lead] -- review plan adherence
-    |
-    v
-[Security Engineer] -- review for vulnerabilities
-    |
-    v
-[Architect] -- review architectural consistency
+[Tech Lead] -- review for plan adherence, architecture, and security
     |
     v
 [Acceptance Tester] -- review unit test adequacy
@@ -85,36 +46,20 @@ For each PR in the milestone plan:
 [Product Manager] -- review requirements satisfaction
     |
     v
-Implementation PR -> merge -> Accept loop
+Implementation PR -> merge -> Accept work cycle
 ```
 
 ## Stage Sequence
 
-### Phase 1
-
 | # | Stage | Persona | Type | Notes |
 |---|-------|---------|------|-------|
 | 1 | Functional code | Developer | contribute | **PR posted after this stage** |
-| 2 | CI/build, operational, unit tests | Developer | contribute | DevOps + Operator + Unit Tester scope |
+| 2 | CI/build, operational, unit tests | Developer | contribute | |
 | 3 | Plan adherence + architecture + security | Tech Lead | review | |
 | 4 | Unit test adequacy | Acceptance Tester | review | |
 | 5 | Requirements satisfaction | Product Manager (human) | review | |
 
-### Full Team (Phase 2+)
-
-| # | Stage | Persona | Type | Notes |
-|---|-------|---------|------|-------|
-| 1 | Functional code | Developer | contribute | **PR posted after this stage** |
-| 2 | CI/build updates | DevOps Engineer | contribute | |
-| 3 | Operational readiness | Operator | contribute | |
-| 4 | Unit tests | Unit Tester | contribute | |
-| 5 | Plan adherence | Tech Lead | review | |
-| 6 | Security review | Security Engineer | review | |
-| 7 | Architecture review | Architect | review | |
-| 8 | Test adequacy | Acceptance Tester | review | |
-| 9 | Requirements review | Product Manager (human) | review | |
-
-## Developer Checklist (Phase 1)
+## Developer Checklist
 
 Before posting the PR (functional code complete):
 
@@ -131,7 +76,6 @@ After posting the PR, before handing off to reviewers:
 - [ ] Logging, monitoring, and health checks added where appropriate
 - [ ] Unit tests written; coverage meets the hard gate (>= 50%)
 - [ ] Project `README.md` updated if new commands or patterns were introduced
-- [ ] Project `CLAUDE.md` updated if new key files or conventions were added
 
 ## Review Rejection Flow
 

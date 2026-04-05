@@ -7,7 +7,7 @@ This document describes the AI agent collaboration system used in this repositor
 The agent system is built on three pillars:
 
 1. **Personas** define *who* each agent is: its goals, constraints, owned files, and review criteria.
-2. **Loops** define *how* agents collaborate: the trigger, sequence of stages, and output for each workflow.
+2. **Work Cycles** define *how* agents collaborate: the trigger, sequence of stages, and output for each workflow.
 3. **Guardrails** define *what quality means*: automated checks that every PR must pass.
 
 ## Active Personas (Phase 1)
@@ -35,21 +35,21 @@ These will be split from their Phase 1 hosts as the system matures:
 | DevOps Engineer | Developer | Milestone 2, Step 6 |
 | Operator | Developer | Milestone 2, Step 6 |
 
-## The Five Loops
+## The Five Work Cycles
 
-Loops are sequential workflows triggered by specific events. Only one agent is active at a time within a loop.
+Work cycles are sequential workflows triggered by specific events. Only one agent is active at a time within a work cycle.
 
-| Loop | Trigger | Output | Documentation |
-|------|---------|--------|---------------|
-| **Planning** | Ticket merged to backlog | Technical plan with milestones and PRs | [`loops/planning.md`](loops/planning.md) |
-| **Verification** | Milestone activated | Failing acceptance tests (TDD) | [`loops/verification.md`](loops/verification.md) |
-| **Implementation** | Verification or Acceptance PR merged (if PRs remain) | Code implementing one planned PR | [`loops/implementation.md`](loops/implementation.md) |
-| **Accept** | Implementation PR merged | Acceptance state assessment and plan updates | [`loops/accept.md`](loops/accept.md) |
-| **Improve** | Milestone completed | Process improvements | [`loops/improve.md`](loops/improve.md) |
+| Work Cycle | Trigger | Output | Documentation |
+|------------|---------|--------|---------------|
+| **Planning** | Ticket merged to backlog | Technical plan with milestones and PRs | [`work-cycles/planning.md`](work-cycles/planning.md) |
+| **Verification** | Milestone activated | Failing acceptance tests (TDD) | [`work-cycles/verification.md`](work-cycles/verification.md) |
+| **Implementation** | Verification or Acceptance PR merged (if PRs remain) | Code implementing one planned PR | [`work-cycles/implementation.md`](work-cycles/implementation.md) |
+| **Accept** | Implementation PR merged | Acceptance state assessment and plan updates | [`work-cycles/accept.md`](work-cycles/accept.md) |
+| **Improve** | Milestone completed | Process improvements | [`work-cycles/improve.md`](work-cycles/improve.md) |
 
 ## Serialized Execution
 
-All loops share a single concurrency group. Only one agent executes at a time; queued triggers run in order. This prevents conflicting changes and simplifies reasoning about repository state.
+All work cycles share a single concurrency group. Only one agent executes at a time; queued triggers run in order. This prevents conflicting changes and simplifies reasoning about repository state.
 
 ## Ownership Enforcement
 
@@ -67,4 +67,4 @@ When multiple agents contribute to a single PR, it moves through a sequence of *
 - **Tracking comments** for human-readable progress checklists
 - **GitHub reviews** for native approval/rejection
 
-See individual loop documentation for the stage sequences.
+See individual work cycle documentation for the stage sequences.

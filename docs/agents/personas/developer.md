@@ -29,7 +29,6 @@
 Primary:
 - `projects/*/src/**`
 - `projects/*/README.md`
-- `projects/*/CLAUDE.md`
 
 Phase 1 expanded (Unit Tester):
 - `projects/*/tests/unit/**`
@@ -51,15 +50,15 @@ Phase 1 expanded (build configs):
 Phase 1 expanded (Operator / Infra):
 - `projects/infra/**`
 
-## Loop Participation
+## Work Cycle Participation
 
-### Planning Loop (Not directly involved)
-- Not a participant in the Planning loop.
+### Planning Work Cycle (Not directly involved)
+- Not a participant in the Planning work cycle.
 
-### Verification Loop (Not directly involved)
+### Verification Work Cycle (Not directly involved)
 - Not a direct participant, but may set up build/CI infrastructure needed by the Acceptance Tester (Phase 1 DevOps scope).
 
-### Implementation Loop (Contributor)
+### Implementation Work Cycle (Contributor)
 - For each planned PR in the milestone:
   1. **Developer role:** Implement the functional code in `projects/<name>/src/`. Run acceptance tests to verify correctness. **Post the PR as soon as functional changes are complete and acceptance tests pass.**
   2. **DevOps role:** Update CI workflows (`.github/workflows/ci-*.yml`) and build configs if the implementation requires it.
@@ -69,10 +68,10 @@ Phase 1 expanded (Operator / Infra):
 - Ensure all project-specific guardrails pass: linting, type checking, tests, coverage.
 - Update project `README.md` and `CLAUDE.md` if the change introduces new patterns, commands, or key files.
 
-### Accept Loop (Not directly involved)
-- Does not contribute in this loop. Implementation gaps found during acceptance are addressed as new planned PRs in the Implementation loop.
+### Accept Work Cycle (Not directly involved)
+- Does not contribute in this work cycle. Implementation gaps found during acceptance are addressed as new planned PRs in the Implementation work cycle.
 
-### Improve Loop (Not directly involved)
+### Improve Work Cycle (Not directly involved)
 - Does not contribute but may be affected by process changes.
 
 ## Implementation Checklist
@@ -118,4 +117,4 @@ When roles are split out:
 - **Unit Tester** takes `projects/*/tests/unit/**` and `projects/*/src/**/*.test.*`
 - **DevOps Engineer** takes `.github/workflows/ci-*`, `Makefile`, `guardrails/coverage.yaml`, `guardrails/linting.yaml`
 - **Operator** takes `projects/infra/**` and operational concerns
-- Developer retains `projects/*/src/**`, `projects/*/README.md`, `projects/*/CLAUDE.md`, and build configs
+- Developer retains `projects/*/src/**`, `projects/*/README.md`, and build configs

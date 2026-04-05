@@ -48,23 +48,16 @@ jobs:
       - name: Install dependencies
         run: pip install pyyaml
 
-      - name: Check if implementation PR
+      - name: Classify and detect plan context
         id: detect
-        shell: bash
         run: |
-          PR_LABELS='${{ toJson(github.event.pull_request.labels.*.name) }}'
           PR_BRANCH="${{ github.event.pull_request.head.ref }}"
 
-          IS_IMPLEMENTATION=false
-          if echo "$PR_LABELS" | grep -q '"work-cycle/implementation"'; then
-            IS_IMPLEMENTATION=true
-          fi
-          if echo "$PR_BRANCH" | grep -qE '^(impl/|feat/)'; then
-            IS_IMPLEMENTATION=true
-          fi
+          eval "$(python3 scripts/work-cycle/classify_pr.py \
+            --branch "$PR_BRANCH" \
+            --labels '${{ toJson(github.event.pull_request.labels.*.name) }}')"
 
-          if [ "$IS_IMPLEMENTATION" = "false" ]; then
-            echo "Not an implementation PR merge, skipping"
+          if [ "$is_implementation" != "true" ]; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
             echo "plan_file=" >> "$GITHUB_OUTPUT"
             echo "milestone_id=" >> "$GITHUB_OUTPUT"
@@ -196,32 +189,13 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const { data: pr } = await github.rest.pulls.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `[Accept] Assessment for ${{ needs.detect-trigger.outputs.pr_id || github.event.pull_request.number }}`,
-              body: [
-                `## Acceptance Assessment`,
-                ``,
-                `- **Implementation PR:** #${{ needs.detect-trigger.outputs.impl_pr_number }}`,
-                `- **Plan PR ID:** ${{ needs.detect-trigger.outputs.pr_id }}`,
-                `- **Milestone:** ${{ needs.detect-trigger.outputs.milestone_id }}`,
-                ``,
-                `This PR records acceptance test results and plan updates following an implementation merge.`,
-              ].join('\n'),
-              head: '${{ needs.create-branch.outputs.branch }}',
-              base: 'main',
-              draft: false,
-            });
-
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr.number,
-              labels: ['work-cycle/acceptance'],
-            });
-
-            core.setOutput('number', pr.number);
+            const fn = require('./scripts/work-cycle/github/create-work-cycle-pr.js');
+            await fn({ github, context, core });
+        env:
+          PR_TITLE: "[Accept] Assessment for ${{ needs.detect-trigger.outputs.pr_id || github.event.pull_request.number }}"
+          PR_BODY: "## Acceptance Assessment\n\n- **Implementation PR:** #${{ needs.detect-trigger.outputs.impl_pr_number }}\n- **Plan PR ID:** ${{ needs.detect-trigger.outputs.pr_id }}\n- **Milestone:** ${{ needs.detect-trigger.outputs.milestone_id }}\n\nThis PR records acceptance test results and plan updates following an implementation merge."
+          HEAD_BRANCH: ${{ needs.create-branch.outputs.branch }}
+          WORK_CYCLE_LABEL: "work-cycle/acceptance"
 
   stage-4-pm-review:
     name: "Stage 4: Product Manager — review"

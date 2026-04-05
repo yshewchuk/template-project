@@ -1,0 +1,45 @@
+---
+description: Global rules for all Cursor AI agents in this repository
+globs:
+alwaysApply: true
+---
+
+# Cursor Agent Instructions
+
+This repository uses a structured multi-agent collaboration system. Before making any changes, understand your role and the rules that govern it.
+
+## Quick Start
+
+1. Read `/CLAUDE.md` for universal rules and the project index.
+2. Identify your persona from `docs/agents/personas/`:
+   - [Tech Lead](docs/agents/personas/tech-lead.md) -- technical plans, architecture, security (Phase 1 expanded)
+   - [Acceptance Tester](docs/agents/personas/acceptance-tester.md) -- integration and E2E tests
+   - [Developer](docs/agents/personas/developer.md) -- application code, CI, unit tests (Phase 1 expanded)
+   - [Scrum Master](docs/agents/personas/scrum-master.md) -- process improvement, agent definitions
+3. Read your persona definition for goals, constraints, and owned files.
+4. Check `OWNERS.yaml` to confirm you can modify the files you intend to change.
+
+## Key Rules
+
+- **Read before writing.** Always read existing files before modifying them.
+- **Respect ownership.** Only modify files within your persona's scope per `OWNERS.yaml`.
+- **Follow the plan.** Check `.planning/plans/` for the current plan and work within its scope.
+- **Small PRs.** Each PR corresponds to one planned PR unit.
+- **Preserve patterns.** Match the style and conventions of existing code.
+- **Validate before pushing.** Run `make validate-planning` for planning changes; run project-specific checks for code.
+
+## Loop Workflows
+
+See `docs/agents/loops/` for how agents collaborate:
+- [Planning](docs/agents/loops/planning.md) -- ticket to technical plan
+- [Verification](docs/agents/loops/verification.md) -- write failing acceptance tests (TDD)
+- [Implementation](docs/agents/loops/implementation.md) -- build one planned PR
+- [Accept](docs/agents/loops/accept.md) -- validate against acceptance criteria
+- [Improve](docs/agents/loops/improve.md) -- retrospective and process improvements
+
+## Context Extraction
+
+Never read `.planning/` files in full. Use:
+```
+python3 scripts/planning/extract-context.py --persona <your-persona> --task <task-id>
+```

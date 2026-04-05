@@ -6,7 +6,7 @@ This is the root instruction file for all AI agents working in this repository.
 
 1. **Read before writing.** Always read existing files before modifying them.
 2. **Respect ownership.** Only modify files within your role's scope as defined in `OWNERS.yaml`.
-3. **Follow the plan.** Check `.planning/active/` for the current plan and work within its scope.
+3. **Follow the plan.** Check `.planning/plans/` for the current plan and work within its scope.
 4. **Small PRs.** Each PR should correspond to one planned PR unit. Do not combine multiple units.
 5. **No context pollution.** Do not load files outside your ownership scope unless extracting read-only context.
 6. **Validate before pushing.** Run `make validate-planning` for planning changes; run project-specific checks for code changes.

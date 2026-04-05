@@ -1,0 +1,21 @@
+id: "001"
+title: "Implement basic Minesweeper game for web"
+status: backlog
+priority: high
+created: "2026-04-03"
+description: |
+  Implement a basic Minesweeper game playable in a web browser.
+  Should support beginner difficulty (9x9, 10 mines).
+acceptance_criteria:
+  - "Player can start a new beginner-difficulty game"
+  - "Clicking a cell reveals it with correct mine count"
+  - "Clicking a mine ends the game"
+  - "Revealing all non-mine cells wins"
+  - "Player can flag/unflag cells"
+  - "Game can be reset without page reload"
+affected_projects: [web-game]
+security_assessment:
+  status: pending
+architectural_assessment:
+  status: pending
+plan_reference: ".planning/plans/001-basic-minesweeper-web.yaml"

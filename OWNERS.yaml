@@ -1,9 +1,8 @@
 product-manager:
-  - ".planning/backlog/**"
+  - ".planning/tickets/**"
 
 tech-lead:
-  - ".planning/active/**"
-  - ".planning/completed/**"
+  - ".planning/plans/**"
   - ".planning/templates/**"
   # Phase 1 expanded scope (covers Architect + Security Engineer):
   - "docs/architecture/**"

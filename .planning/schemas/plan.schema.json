@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "plan.schema.json",
+  "title": "Technical Plan",
+  "description": "Schema for technical plans in .planning/plans/",
+  "type": "object",
+  "required": [
+    "id",
+    "ticket_reference",
+    "status",
+    "milestones"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9]{3}$",
+      "description": "Zero-padded three-digit plan identifier matching the ticket id"
+    },
+    "ticket_reference": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Relative path to the associated ticket file"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "in-progress", "completed", "cancelled"]
+    },
+    "milestones": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/milestone"
+      },
+      "minItems": 1
+    }
+  },
+  "definitions": {
+    "milestone": {
+      "type": "object",
+      "required": ["id", "title", "status", "pull_requests"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9]{3}-M[0-9]+$",
+          "description": "Milestone identifier: <plan-id>-M<number>"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": ["planned", "in-progress", "completed", "cancelled"]
+        },
+        "acceptance_tests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/acceptance_test"
+          }
+        },
+        "pull_requests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pull_request"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "acceptance_test": {
+      "type": "object",
+      "required": ["test", "passing_at_pr"],
+      "additionalProperties": false,
+      "properties": {
+        "test": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of the acceptance test"
+        },
+        "passing_at_pr": {
+          "type": "string",
+          "description": "PR id at which this test is expected to pass"
+        }
+      }
+    },
+    "pull_request": {
+      "type": "object",
+      "required": ["id", "title", "status", "branch", "estimated_lines"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9]{3}-M[0-9]+-PR[0-9]+$",
+          "description": "PR identifier: <milestone-id>-PR<number>"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": ["planned", "in-progress", "merged", "cancelled"]
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Git branch name for this PR"
+        },
+        "estimated_lines": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Estimated number of lines changed"
+        }
+      }
+    }
+  }
+}

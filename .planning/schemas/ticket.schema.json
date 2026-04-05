@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "ticket.schema.json",
+  "title": "Planning Ticket",
+  "description": "Schema for product backlog tickets in .planning/tickets/",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "status",
+    "priority",
+    "created",
+    "description",
+    "acceptance_criteria",
+    "affected_projects"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9]{3}$",
+      "description": "Zero-padded three-digit ticket identifier"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "status": {
+      "type": "string",
+      "enum": ["backlog", "assessed", "planned", "in-progress", "done"]
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "created": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO 8601 date (YYYY-MM-DD)"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "affected_projects": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["web-game", "mobile-game", "api", "analytics", "infra"]
+      },
+      "minItems": 1
+    },
+    "security_assessment": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": true,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pending", "not-required", "completed"]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "architectural_assessment": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": true,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pending", "not-required", "completed"]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "plan_reference": {
+      "type": "string",
+      "description": "Relative path to the associated plan file, empty if no plan yet"
+    }
+  }
+}

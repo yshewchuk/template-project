@@ -1,0 +1,23 @@
+id: "001"
+ticket_reference: ".planning/tickets/001-basic-minesweeper-web.yaml"
+status: in-progress
+milestones:
+  - id: "001-M1"
+    title: "Core game logic"
+    status: in-progress
+    acceptance_tests:
+      - test: "test_new_game_creates_board"
+        passing_at_pr: "001-M1-PR1"
+      - test: "test_reveal_shows_mine_count"
+        passing_at_pr: "001-M1-PR2"
+    pull_requests:
+      - id: "001-M1-PR1"
+        title: "Game state model and mine placement"
+        status: merged
+        branch: "feat/001-m1-game-state"
+        estimated_lines: 150
+      - id: "001-M1-PR2"
+        title: "Cell reveal logic with flood fill"
+        status: in-progress
+        branch: "feat/001-m1-reveal"
+        estimated_lines: 120

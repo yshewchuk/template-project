@@ -42,7 +42,8 @@ Implementation PR merged
 Acceptance PR -> merge
     |
     v
-Next Implementation PR or milestone complete
+Remaining PRs in milestone? -- yes --> Implementation loop (next PR)
+                             -- no  --> Milestone complete -> Improve loop
 ```
 
 ## Full Team Flow (Phase 2+)
@@ -72,6 +73,10 @@ Implementation PR merged
     |
     v
 Acceptance PR -> merge
+    |
+    v
+Remaining PRs in milestone? -- yes --> Implementation loop (next PR)
+                             -- no  --> Milestone complete -> Improve loop
 ```
 
 ## Stage Sequence

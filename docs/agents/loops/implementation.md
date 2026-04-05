@@ -6,7 +6,9 @@ Implement code for one planned PR from the milestone. This loop executes once pe
 
 ## Trigger
 
-Verification PR merged. Iterates once per PR in the milestone.
+Either:
+1. **Verification PR merged** -- starts the first implementation PR in the milestone.
+2. **Acceptance PR merged** -- continues with the next planned PR if the milestone still has remaining PRs (including any new PRs added by the Accept loop to address implementation gaps).
 
 ## Output
 
@@ -41,7 +43,7 @@ For each PR in the milestone plan:
 [Product Manager] -- review requirements satisfaction
     |
     v
-Implementation PR -> merge -> next PR or milestone complete
+Implementation PR -> merge -> Accept loop
 ```
 
 ## Full Team Flow (Phase 2+)
@@ -77,7 +79,7 @@ For each PR in the milestone plan:
 [Product Manager] -- review requirements satisfaction
     |
     v
-Implementation PR -> merge
+Implementation PR -> merge -> Accept loop
 ```
 
 ## Stage Sequence

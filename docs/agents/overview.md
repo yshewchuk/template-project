@@ -43,7 +43,7 @@ Loops are sequential workflows triggered by specific events. Only one agent is a
 |------|---------|--------|---------------|
 | **Planning** | Ticket merged to backlog | Technical plan with milestones and PRs | [`loops/planning.md`](loops/planning.md) |
 | **Verification** | Milestone activated | Failing acceptance tests (TDD) | [`loops/verification.md`](loops/verification.md) |
-| **Implementation** | Verification PR merged | Code implementing one planned PR | [`loops/implementation.md`](loops/implementation.md) |
+| **Implementation** | Verification or Acceptance PR merged (if PRs remain) | Code implementing one planned PR | [`loops/implementation.md`](loops/implementation.md) |
 | **Accept** | Implementation PR merged | Acceptance state assessment and plan updates | [`loops/accept.md`](loops/accept.md) |
 | **Improve** | Milestone completed | Process improvements | [`loops/improve.md`](loops/improve.md) |
 

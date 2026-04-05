@@ -1,0 +1,265 @@
+# Verification Work Cycle
+#
+# Trigger: a plan is merged or updated with a milestone status set to in-progress.
+# Stages:
+#   1. Tech Lead (contribute) — review milestone, confirm PR ordering
+#   2. Developer (contribute) — set up build/CI for new components if needed
+#   3. Acceptance Tester (contribute) — write failing acceptance tests
+#   4. Tech Lead (contribute) — annotate plan with test-to-PR mappings
+#   5. Product Manager (review) — human reviews the verification PR
+#
+# See docs/agents/work-cycles/verification.md for details.
+
+name: "Work Cycle: Verification"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".planning/plans/**"
+
+concurrency:
+  group: agent-execution
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  detect-milestone:
+    name: Detect activated milestone
+    runs-on: ubuntu-latest
+    outputs:
+      plan_file: ${{ steps.detect.outputs.plan_file }}
+      plan_id: ${{ steps.detect.outputs.plan_id }}
+      milestone_id: ${{ steps.detect.outputs.milestone_id }}
+      should_run: ${{ steps.detect.outputs.should_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Find activated milestone
+        id: detect
+        shell: bash
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- '.planning/plans/' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No plan changes detected"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Check each changed plan for an in-progress milestone
+          for PLAN_FILE in $CHANGED; do
+            if [ ! -f "$PLAN_FILE" ]; then
+              continue
+            fi
+            RESULT=$(python3 -c "
+          import yaml, sys
+          with open('$PLAN_FILE') as f:
+              plan = yaml.safe_load(f)
+          for m in plan.get('milestones', []):
+              if m.get('status') == 'in-progress':
+                  print(f\"{plan['id']}|{m['id']}\")
+                  sys.exit(0)
+          " 2>/dev/null || true)
+            if [ -n "$RESULT" ]; then
+              PLAN_ID=$(echo "$RESULT" | cut -d'|' -f1)
+              MILESTONE_ID=$(echo "$RESULT" | cut -d'|' -f2)
+              echo "plan_file=$PLAN_FILE" >> "$GITHUB_OUTPUT"
+              echo "plan_id=$PLAN_ID" >> "$GITHUB_OUTPUT"
+              echo "milestone_id=$MILESTONE_ID" >> "$GITHUB_OUTPUT"
+              echo "should_run=true" >> "$GITHUB_OUTPUT"
+              echo "Activated milestone: $MILESTONE_ID in plan $PLAN_ID"
+              exit 0
+            fi
+          done
+
+          echo "No in-progress milestones found"
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+
+  create-branch:
+    name: Create verification branch
+    needs: detect-milestone
+    if: needs.detect-milestone.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.branch.outputs.name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create branch
+        id: branch
+        shell: bash
+        run: |
+          BRANCH="verify/${{ needs.detect-milestone.outputs.milestone_id }}"
+          git checkout -b "$BRANCH"
+          git push -u origin "$BRANCH"
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+
+  stage-1-tech-lead-confirm:
+    name: "Stage 1: Tech Lead — confirm milestone"
+    needs: [detect-milestone, create-branch]
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: verification
+      persona: tech-lead
+      stage_number: "1"
+      stage_type: contribute
+      stage_label: "stage/tech-lead"
+      branch: ${{ needs.create-branch.outputs.branch }}
+      all_stages_json: >-
+        [
+          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":2,"type":"contribute","persona":"Developer","skipped":false},
+          {"number":3,"type":"contribute","persona":"Acceptance Tester","skipped":false},
+          {"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":5,"type":"review","persona":"Product Manager","skipped":false}
+        ]
+      prompt: |
+        The milestone ${{ needs.detect-milestone.outputs.milestone_id }} has been activated in plan ${{ needs.detect-milestone.outputs.plan_file }}.
+
+        Your task:
+        1. Read the plan file and review the milestone.
+        2. Confirm the PR ordering is correct and each PR is independently mergeable.
+        3. Ensure acceptance criteria are clear and testable.
+        4. If any adjustments are needed to the plan, make them now.
+        5. Commit and push changes to the current branch.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  stage-2-developer-ci:
+    name: "Stage 2: Developer — CI/build setup"
+    needs: [detect-milestone, create-branch, stage-1-tech-lead-confirm]
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: verification
+      persona: developer
+      stage_number: "2"
+      stage_type: contribute
+      stage_label: "stage/developer"
+      branch: ${{ needs.create-branch.outputs.branch }}
+      all_stages_json: >-
+        [
+          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":2,"type":"contribute","persona":"Developer","skipped":false},
+          {"number":3,"type":"contribute","persona":"Acceptance Tester","skipped":false},
+          {"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":5,"type":"review","persona":"Product Manager","skipped":false}
+        ]
+      prompt: |
+        Milestone ${{ needs.detect-milestone.outputs.milestone_id }} is being verified.
+
+        Your task (DevOps scope):
+        1. Review the plan at ${{ needs.detect-milestone.outputs.plan_file }} to understand which projects are affected.
+        2. Set up build/CI infrastructure needed to run acceptance tests for the affected projects.
+        3. Ensure test frameworks are configured (e.g., Vitest for web-game, JUnit 5 for mobile-game, etc.).
+        4. Update CI workflows or build configs as needed.
+        5. Only modify files within Developer ownership scope.
+        6. Commit and push changes.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  stage-3-acceptance-tester:
+    name: "Stage 3: Acceptance Tester — write tests"
+    needs: [detect-milestone, create-branch, stage-2-developer-ci]
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: verification
+      persona: acceptance-tester
+      stage_number: "3"
+      stage_type: contribute
+      stage_label: "stage/acceptance-tester"
+      branch: ${{ needs.create-branch.outputs.branch }}
+      all_stages_json: >-
+        [
+          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":2,"type":"contribute","persona":"Developer","skipped":false},
+          {"number":3,"type":"contribute","persona":"Acceptance Tester","skipped":false},
+          {"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":5,"type":"review","persona":"Product Manager","skipped":false}
+        ]
+      prompt: |
+        Milestone ${{ needs.detect-milestone.outputs.milestone_id }} is being verified.
+
+        Your task:
+        1. Read the plan at ${{ needs.detect-milestone.outputs.plan_file }}.
+        2. Read the ticket referenced in the plan for acceptance criteria.
+        3. For each acceptance criterion, write one or more integration or E2E tests.
+        4. Place tests in the appropriate `projects/<name>/tests/integration/` or `projects/<name>/tests/e2e/` directory.
+        5. Use the project's standard test framework.
+        6. All tests must FAIL at this point (no implementation exists yet).
+        7. Verify tests compile/parse without errors but fail when run.
+        8. Commit and push changes.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  stage-4-tech-lead-mappings:
+    name: "Stage 4: Tech Lead — test-to-PR mappings"
+    needs: [detect-milestone, create-branch, stage-3-acceptance-tester]
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: verification
+      persona: tech-lead
+      stage_number: "4"
+      stage_type: contribute
+      stage_label: "stage/tech-lead"
+      branch: ${{ needs.create-branch.outputs.branch }}
+      all_stages_json: >-
+        [
+          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":2,"type":"contribute","persona":"Developer","skipped":false},
+          {"number":3,"type":"contribute","persona":"Acceptance Tester","skipped":false},
+          {"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":5,"type":"review","persona":"Product Manager","skipped":false}
+        ]
+      prompt: |
+        The Acceptance Tester has written failing tests for milestone ${{ needs.detect-milestone.outputs.milestone_id }}.
+
+        Your task:
+        1. Review the acceptance tests that were just written.
+        2. Update the plan at ${{ needs.detect-milestone.outputs.plan_file }} with test-to-PR mappings.
+        3. For each acceptance test, set the `passing_at_pr` field to the planned PR ID where that test should start passing.
+        4. Run `make validate-planning` to verify the plan is still valid.
+        5. Commit and push changes.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  stage-5-pm-review:
+    name: "Stage 5: Product Manager — review"
+    needs: [detect-milestone, create-branch, stage-4-tech-lead-mappings]
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: verification
+      persona: product-manager
+      stage_number: "5"
+      stage_type: review
+      stage_label: "stage/review-product-manager"
+      branch: ${{ needs.create-branch.outputs.branch }}
+      all_stages_json: >-
+        [
+          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":2,"type":"contribute","persona":"Developer","skipped":false},
+          {"number":3,"type":"contribute","persona":"Acceptance Tester","skipped":false},
+          {"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":5,"type":"review","persona":"Product Manager","skipped":false}
+        ]
+      prompt: |
+        The Verification work cycle for milestone ${{ needs.detect-milestone.outputs.milestone_id }} is complete.
+        All failing acceptance tests are in place and the plan has been annotated with test-to-PR mappings.
+        Please review the verification PR for completeness.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

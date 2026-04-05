@@ -1,0 +1,251 @@
+# Improve Work Cycle
+#
+# Trigger: a milestone is completed (all PRs merged, acceptance tests passing).
+# Stages:
+#   1. Scrum Master (contribute) — retrospective, process improvements
+#   2. Product Manager (review) — review against product workflow
+#   3. Tech Lead (review) — review against technical workflow
+#
+# See docs/agents/work-cycles/improve.md for details.
+
+name: "Work Cycle: Improve"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".planning/plans/**"
+
+concurrency:
+  group: agent-execution
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  detect-milestone-complete:
+    name: Detect completed milestone
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.detect.outputs.should_run }}
+      plan_file: ${{ steps.detect.outputs.plan_file }}
+      plan_id: ${{ steps.detect.outputs.plan_id }}
+      milestone_id: ${{ steps.detect.outputs.milestone_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Check for newly completed milestone
+        id: detect
+        shell: bash
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- '.planning/plans/' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No plan changes detected"
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          for PLAN_FILE in $CHANGED; do
+            if [ ! -f "$PLAN_FILE" ]; then
+              continue
+            fi
+
+            # Check if a milestone was just completed (compare old vs new)
+            RESULT=$(python3 -c "
+          import yaml, sys, subprocess
+
+          with open('$PLAN_FILE') as f:
+              current = yaml.safe_load(f)
+
+          try:
+              old_content = subprocess.check_output(
+                  ['git', 'show', 'HEAD~1:$PLAN_FILE'],
+                  stderr=subprocess.DEVNULL
+              ).decode()
+              old = yaml.safe_load(old_content)
+          except Exception:
+              old = {'milestones': []}
+
+          old_completed = {m['id'] for m in old.get('milestones', []) if m.get('status') == 'completed'}
+
+          for m in current.get('milestones', []):
+              if m.get('status') == 'completed' and m['id'] not in old_completed:
+                  print(f\"{current['id']}|{m['id']}\")
+                  sys.exit(0)
+          " 2>/dev/null || true)
+
+            if [ -n "$RESULT" ]; then
+              PLAN_ID=$(echo "$RESULT" | cut -d'|' -f1)
+              MILESTONE_ID=$(echo "$RESULT" | cut -d'|' -f2)
+              echo "plan_file=$PLAN_FILE" >> "$GITHUB_OUTPUT"
+              echo "plan_id=$PLAN_ID" >> "$GITHUB_OUTPUT"
+              echo "milestone_id=$MILESTONE_ID" >> "$GITHUB_OUTPUT"
+              echo "should_run=true" >> "$GITHUB_OUTPUT"
+              echo "Newly completed milestone: $MILESTONE_ID in plan $PLAN_ID"
+              exit 0
+            fi
+          done
+
+          echo "No newly completed milestones found"
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+
+  create-branch:
+    name: Create improvement branch
+    needs: detect-milestone-complete
+    if: needs.detect-milestone-complete.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.branch.outputs.name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create branch
+        id: branch
+        shell: bash
+        run: |
+          BRANCH="improve/${{ needs.detect-milestone-complete.outputs.milestone_id }}"
+          git checkout -b "$BRANCH"
+          git push -u origin "$BRANCH"
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+
+  stage-1-scrum-master:
+    name: "Stage 1: Scrum Master — retrospective"
+    needs: [detect-milestone-complete, create-branch]
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: improve
+      persona: scrum-master
+      stage_number: "1"
+      stage_type: contribute
+      stage_label: "stage/scrum-master"
+      branch: ${{ needs.create-branch.outputs.branch }}
+      all_stages_json: >-
+        [
+          {"number":1,"type":"contribute","persona":"Scrum Master","skipped":false},
+          {"number":2,"type":"review","persona":"Product Manager","skipped":false},
+          {"number":3,"type":"review","persona":"Tech Lead","skipped":false}
+        ]
+      prompt: |
+        Milestone ${{ needs.detect-milestone-complete.outputs.milestone_id }} in plan ${{ needs.detect-milestone-complete.outputs.plan_file }} has been completed.
+
+        Your task:
+        1. Review all PRs and review threads from this milestone.
+        2. Review CI/CD logs for recurring failures or slow feedback.
+        3. Identify misunderstandings, bottlenecks, and failures.
+        4. Propose and implement process improvements:
+           - Update persona definitions if role boundaries were unclear
+           - Refine work cycle stage sequences if suboptimal
+           - Adjust planning schemas if YAML structure caused confusion
+           - Update OWNERS.yaml if ownership boundaries need adjustment
+           - Improve context extraction if agents had insufficient/excessive context
+           - Update docs/guides/onboarding.md with lessons learned
+        5. Document each change's rationale with evidence from the milestone.
+        6. Commit and push changes.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  open-pr:
+    name: Open improvement PR
+    needs: [detect-milestone-complete, create-branch, stage-1-scrum-master]
+    runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ steps.pr.outputs.number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.create-branch.outputs.branch }}
+
+      - name: Create PR
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Improve] Retrospective for milestone ${{ needs.detect-milestone-complete.outputs.milestone_id }}`,
+              body: [
+                `## Improvement PR — Retrospective`,
+                ``,
+                `- **Milestone:** ${{ needs.detect-milestone-complete.outputs.milestone_id }}`,
+                `- **Plan:** ${{ needs.detect-milestone-complete.outputs.plan_file }}`,
+                ``,
+                `Process improvements and retrospective notes from the completed milestone.`,
+              ].join('\n'),
+              head: '${{ needs.create-branch.outputs.branch }}',
+              base: 'main',
+              draft: false,
+            });
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: ['work-cycle/improve'],
+            });
+
+            core.setOutput('number', pr.number);
+
+  stage-2-pm-review:
+    name: "Stage 2: Product Manager — review"
+    needs: [detect-milestone-complete, create-branch, open-pr]
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: improve
+      persona: product-manager
+      stage_number: "2"
+      stage_type: review
+      stage_label: "stage/review-product-manager"
+      branch: ${{ needs.create-branch.outputs.branch }}
+      pr_number: ${{ needs.open-pr.outputs.pr_number }}
+      all_stages_json: >-
+        [
+          {"number":1,"type":"contribute","persona":"Scrum Master","skipped":false},
+          {"number":2,"type":"review","persona":"Product Manager","skipped":false},
+          {"number":3,"type":"review","persona":"Tech Lead","skipped":false}
+        ]
+      prompt: |
+        The Scrum Master has prepared process improvements from milestone ${{ needs.detect-milestone-complete.outputs.milestone_id }}.
+        Please review the changes against product workflow needs.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  stage-3-tech-lead-review:
+    name: "Stage 3: Tech Lead — review"
+    needs: [detect-milestone-complete, create-branch, open-pr, stage-2-pm-review]
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: improve
+      persona: tech-lead
+      stage_number: "3"
+      stage_type: review
+      stage_label: "stage/review-tech-lead"
+      branch: ${{ needs.create-branch.outputs.branch }}
+      pr_number: ${{ needs.open-pr.outputs.pr_number }}
+      all_stages_json: >-
+        [
+          {"number":1,"type":"contribute","persona":"Scrum Master","skipped":false},
+          {"number":2,"type":"review","persona":"Product Manager","skipped":false},
+          {"number":3,"type":"review","persona":"Tech Lead","skipped":false}
+        ]
+      prompt: |
+        The Scrum Master has prepared process improvements from milestone ${{ needs.detect-milestone-complete.outputs.milestone_id }}.
+        Please review the changes against the technical workflow to ensure they don't negatively impact planning or implementation processes.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

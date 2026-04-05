@@ -1,0 +1,110 @@
+# Planning Work Cycle
+#
+# Trigger: a ticket PR is merged into .planning/tickets/
+# Stages:
+#   1. Tech Lead (contribute) — assess security/architecture, create technical plan
+#   2. Product Manager (review) — human reviews the planning PR
+#
+# See docs/agents/work-cycles/planning.md for details.
+
+name: "Work Cycle: Planning"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".planning/tickets/**"
+
+concurrency:
+  group: agent-execution
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  detect-ticket:
+    name: Detect new ticket
+    runs-on: ubuntu-latest
+    outputs:
+      ticket_id: ${{ steps.detect.outputs.ticket_id }}
+      ticket_file: ${{ steps.detect.outputs.ticket_file }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Find new or changed tickets
+        id: detect
+        shell: bash
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- '.planning/tickets/' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No ticket changes detected"
+            echo "ticket_id=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          TICKET_FILE=$(echo "$CHANGED" | head -1)
+          TICKET_ID=$(basename "$TICKET_FILE" .yaml | grep -oE '^[0-9]+' || echo "")
+          echo "ticket_file=$TICKET_FILE" >> "$GITHUB_OUTPUT"
+          echo "ticket_id=$TICKET_ID" >> "$GITHUB_OUTPUT"
+          echo "Detected ticket: $TICKET_ID ($TICKET_FILE)"
+
+  stage-1-tech-lead:
+    name: "Stage 1: Tech Lead — create plan"
+    needs: detect-ticket
+    if: needs.detect-ticket.outputs.ticket_id != ''
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: planning
+      persona: tech-lead
+      stage_number: "1"
+      stage_type: contribute
+      stage_label: "stage/tech-lead"
+      all_stages_json: >-
+        [
+          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":2,"type":"review","persona":"Product Manager","skipped":false}
+        ]
+      prompt: |
+        A new ticket has been merged: ${{ needs.detect-ticket.outputs.ticket_file }}
+
+        Your task in the Planning work cycle:
+        1. Read the ticket at `${{ needs.detect-ticket.outputs.ticket_file }}`.
+        2. Assess security implications — update `docs/security/threat-model.md` if needed.
+        3. Assess architectural implications — write ADRs to `docs/architecture/decisions/` if needed.
+        4. Update `contracts/` if APIs are affected.
+        5. Create a technical plan in `.planning/plans/` with:
+           - Milestones that group related PRs
+           - PRs ordered so each is independently mergeable
+           - Estimated line counts per PR (target < 400 lines)
+           - Branch names following `feat/<ticket-id>-<milestone>-<description>`
+           - Acceptance test mappings (which tests pass after which PR)
+        6. Run `make validate-planning` to verify the plan.
+        7. Create a new branch (e.g. `plan/<ticket-id>`) and push a PR with the planning changes.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  stage-2-pm-review:
+    name: "Stage 2: Product Manager — review plan"
+    needs: [detect-ticket, stage-1-tech-lead]
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: planning
+      persona: product-manager
+      stage_number: "2"
+      stage_type: review
+      stage_label: "stage/review-product-manager"
+      all_stages_json: >-
+        [
+          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
+          {"number":2,"type":"review","persona":"Product Manager","skipped":false}
+        ]
+      prompt: |
+        The Tech Lead has created a technical plan for ticket ${{ needs.detect-ticket.outputs.ticket_id }}.
+        Please review the planning PR for completeness and alignment with product requirements.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

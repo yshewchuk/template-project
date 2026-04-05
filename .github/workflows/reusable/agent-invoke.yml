@@ -1,0 +1,280 @@
+name: Invoke Agent
+
+on:
+  workflow_call:
+    inputs:
+      work_cycle:
+        description: "Work cycle name (planning, verification, implementation, accept, improve)"
+        type: string
+        required: true
+      persona:
+        description: "Persona identifier (tech-lead, developer, acceptance-tester, scrum-master)"
+        type: string
+        required: true
+      stage_number:
+        description: "Current stage number (1-indexed)"
+        type: string
+        required: true
+      stage_type:
+        description: "Stage type: contribute or review"
+        type: string
+        required: true
+      stage_label:
+        description: "PR label for this stage (e.g. stage/tech-lead)"
+        type: string
+        required: true
+      prompt:
+        description: "Task-specific instructions for the agent"
+        type: string
+        required: true
+      pr_number:
+        description: "PR number to operate on"
+        type: string
+        required: false
+        default: ""
+      branch:
+        description: "Branch to check out and work on"
+        type: string
+        required: false
+        default: ""
+      all_stages_json:
+        description: "JSON array of all stage definitions for the tracking comment"
+        type: string
+        required: true
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+    outputs:
+      conclusion:
+        description: "Stage result (success or failure)"
+        value: ${{ jobs.invoke.outputs.conclusion }}
+
+jobs:
+  invoke:
+    name: "Stage ${{ inputs.stage_number }}: ${{ inputs.persona }} (${{ inputs.stage_type }})"
+    runs-on: ubuntu-latest
+    outputs:
+      conclusion: ${{ steps.conclusion.outputs.result }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.head_ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Manage stage labels
+        if: inputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt('${{ inputs.pr_number }}');
+            const stageLabel = '${{ inputs.stage_label }}';
+            const stageType = '${{ inputs.stage_type }}';
+            const labelColor = stageType === 'contribute' ? '0e8a16' : '1d76db';
+
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            for (const label of labels) {
+              if (label.name.startsWith('stage/')) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: prNumber,
+                    name: label.name,
+                  });
+                } catch (e) {
+                  console.log(`Could not remove label ${label.name}: ${e.message}`);
+                }
+              }
+            }
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: stageLabel,
+              });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: stageLabel,
+                color: labelColor,
+                description: `Work cycle stage: ${stageType}`,
+              });
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              labels: [stageLabel],
+            });
+
+      - name: Update tracking comment
+        if: inputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt('${{ inputs.pr_number }}');
+            const allStages = JSON.parse(process.env.ALL_STAGES_JSON);
+            const currentStage = parseInt('${{ inputs.stage_number }}');
+            const workCycle = '${{ inputs.work_cycle }}';
+
+            let table = '| # | Type | Agent | Status |\n';
+            table += '|---|------|-------|--------|\n';
+            for (const stage of allStages) {
+              let status = 'Pending';
+              if (stage.number < currentStage) status = '✅ Done';
+              if (stage.number == currentStage) status = '🔄 **Active**';
+              if (stage.skipped) status = '⏭️ Skipped (Phase 1)';
+              const icon = stage.type === 'contribute' ? '🔨' : '👀';
+              table += `| ${stage.number} | ${icon} ${stage.type} | ${stage.persona} | ${status} |\n`;
+            }
+
+            const body = [
+              `## PR Progress: ${workCycle} work cycle\n`,
+              table,
+              `\nCurrent stage: **${currentStage} — ${{ inputs.persona }} (${{ inputs.stage_type }})**`,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            const existing = comments.find(c => c.body?.startsWith('## PR Progress:'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: body,
+              });
+            }
+        env:
+          ALL_STAGES_JSON: ${{ inputs.all_stages_json }}
+
+      - name: Read persona definition
+        id: persona
+        shell: bash
+        run: |
+          PERSONA_FILE="docs/agents/personas/${{ inputs.persona }}.md"
+          if [ -f "$PERSONA_FILE" ]; then
+            {
+              echo "content<<PERSONA_EOF"
+              cat "$PERSONA_FILE"
+              echo ""
+              echo "PERSONA_EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "content=Persona definition not found at $PERSONA_FILE" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Invoke Claude Code (contribute stage)
+        if: inputs.stage_type == 'contribute'
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            # Agent Persona
+
+            ${{ steps.persona.outputs.content }}
+
+            # Task
+
+            ${{ inputs.prompt }}
+
+            # Context
+
+            - Work cycle: ${{ inputs.work_cycle }}
+            - Stage: ${{ inputs.stage_number }} (${{ inputs.stage_type }})
+            - Branch: ${{ inputs.branch }}
+
+            # Instructions
+
+            1. Read CLAUDE.md for universal rules before making any changes.
+            2. Follow the persona definition above strictly.
+            3. Only modify files within your persona's ownership scope (defined in OWNERS.yaml).
+            4. Complete the task described above.
+            5. Validate your changes (run `make validate-planning` for planning files).
+            6. Commit and push all changes to the current branch.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--max-turns 30"
+
+      - name: Invoke Claude Code (automated review stage)
+        if: inputs.stage_type == 'review' && inputs.persona != 'product-manager'
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            # Agent Persona
+
+            ${{ steps.persona.outputs.content }}
+
+            # Review Task
+
+            ${{ inputs.prompt }}
+
+            # Context
+
+            - Work cycle: ${{ inputs.work_cycle }}
+            - Stage: ${{ inputs.stage_number }} (review)
+            - PR: #${{ inputs.pr_number }}
+
+            # Instructions
+
+            1. Read CLAUDE.md for universal rules.
+            2. Review the changes on this branch according to your persona's review criteria.
+            3. Submit a GitHub PR review:
+               - **Approve** if the changes meet all review criteria for your persona.
+               - **Request changes** with specific, actionable feedback if issues are found.
+            4. Do NOT modify any files. This is a review-only stage.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--max-turns 10"
+
+      - name: Request human review
+        if: inputs.stage_type == 'review' && inputs.persona == 'product-manager'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = parseInt('${{ inputs.pr_number }}');
+            if (!prNumber) {
+              console.log('No PR number provided, skipping human review request');
+              return;
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: [
+                '## Human Review Requested',
+                '',
+                'All automated stages for the **${{ inputs.work_cycle }}** work cycle are complete.',
+                'This PR is ready for **Product Manager** review.',
+                '',
+                'Please review the changes and:',
+                '- **Approve** the PR if the changes satisfy requirements',
+                '- **Request changes** with feedback if adjustments are needed',
+              ].join('\n'),
+            });
+
+      - name: Set conclusion
+        id: conclusion
+        if: always()
+        shell: bash
+        run: echo "result=success" >> "$GITHUB_OUTPUT"

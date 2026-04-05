@@ -23,10 +23,15 @@ on:
         description: "PR label for this stage (e.g. stage/tech-lead)"
         type: string
         required: true
-      prompt:
-        description: "Task-specific instructions for the agent"
+      prompt_template:
+        description: "Path to prompt template file under docs/agents/prompts/"
         type: string
         required: true
+      prompt_vars:
+        description: "Space-separated KEY=VALUE pairs for prompt template substitution"
+        type: string
+        required: false
+        default: ""
       pr_number:
         description: "PR number to operate on"
         type: string
@@ -65,6 +70,14 @@ jobs:
         with:
           ref: ${{ inputs.branch || github.head_ref || github.ref }}
           fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
 
       - name: Manage stage labels
         if: inputs.pr_number != ''
@@ -119,32 +132,30 @@ jobs:
               labels: [stageLabel],
             });
 
+      - name: Render tracking comment
+        if: inputs.pr_number != ''
+        id: tracking
+        shell: bash
+        run: |
+          BODY=$(python3 scripts/work-cycle/render_tracking_comment.py \
+            --stages '${{ inputs.all_stages_json }}' \
+            --current-stage '${{ inputs.stage_number }}' \
+            --work-cycle '${{ inputs.work_cycle }}' \
+            --current-persona '${{ inputs.persona }}' \
+            --current-type '${{ inputs.stage_type }}')
+          {
+            echo "body<<TRACKING_EOF"
+            echo "$BODY"
+            echo "TRACKING_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Update tracking comment
         if: inputs.pr_number != ''
         uses: actions/github-script@v7
         with:
           script: |
             const prNumber = parseInt('${{ inputs.pr_number }}');
-            const allStages = JSON.parse(process.env.ALL_STAGES_JSON);
-            const currentStage = parseInt('${{ inputs.stage_number }}');
-            const workCycle = '${{ inputs.work_cycle }}';
-
-            let table = '| # | Type | Agent | Status |\n';
-            table += '|---|------|-------|--------|\n';
-            for (const stage of allStages) {
-              let status = 'Pending';
-              if (stage.number < currentStage) status = '✅ Done';
-              if (stage.number == currentStage) status = '🔄 **Active**';
-              if (stage.skipped) status = '⏭️ Skipped (Phase 1)';
-              const icon = stage.type === 'contribute' ? '🔨' : '👀';
-              table += `| ${stage.number} | ${icon} ${stage.type} | ${stage.persona} | ${status} |\n`;
-            }
-
-            const body = [
-              `## PR Progress: ${workCycle} work cycle\n`,
-              table,
-              `\nCurrent stage: **${currentStage} — ${{ inputs.persona }} (${{ inputs.stage_type }})**`,
-            ].join('\n');
+            const body = process.env.TRACKING_BODY;
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
@@ -169,7 +180,7 @@ jobs:
               });
             }
         env:
-          ALL_STAGES_JSON: ${{ inputs.all_stages_json }}
+          TRACKING_BODY: ${{ steps.tracking.outputs.body }}
 
       - name: Read persona definition
         id: persona
@@ -187,33 +198,61 @@ jobs:
             echo "content=Persona definition not found at $PERSONA_FILE" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Render task prompt
+        id: task_prompt
+        shell: bash
+        run: |
+          RENDERED=$(python3 scripts/work-cycle/render_prompt.py \
+            --template '${{ inputs.prompt_template }}' \
+            ${{ inputs.prompt_vars }})
+          {
+            echo "content<<TASK_PROMPT_EOF"
+            echo "$RENDERED"
+            echo "TASK_PROMPT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Render full contribute prompt
+        if: inputs.stage_type == 'contribute'
+        id: contribute_prompt
+        shell: bash
+        run: |
+          RENDERED=$(python3 scripts/work-cycle/render_prompt.py \
+            --template docs/agents/prompts/_shared/contribute.md \
+            "persona_content=${{ steps.persona.outputs.content }}" \
+            "task_prompt=${{ steps.task_prompt.outputs.content }}" \
+            "work_cycle=${{ inputs.work_cycle }}" \
+            "stage_number=${{ inputs.stage_number }}" \
+            "stage_type=${{ inputs.stage_type }}" \
+            "branch=${{ inputs.branch }}")
+          {
+            echo "content<<FULL_PROMPT_EOF"
+            echo "$RENDERED"
+            echo "FULL_PROMPT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Render full review prompt
+        if: inputs.stage_type == 'review' && inputs.persona != 'product-manager'
+        id: review_prompt
+        shell: bash
+        run: |
+          RENDERED=$(python3 scripts/work-cycle/render_prompt.py \
+            --template docs/agents/prompts/_shared/review.md \
+            "persona_content=${{ steps.persona.outputs.content }}" \
+            "task_prompt=${{ steps.task_prompt.outputs.content }}" \
+            "work_cycle=${{ inputs.work_cycle }}" \
+            "stage_number=${{ inputs.stage_number }}" \
+            "pr_number=${{ inputs.pr_number }}")
+          {
+            echo "content<<FULL_PROMPT_EOF"
+            echo "$RENDERED"
+            echo "FULL_PROMPT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Invoke Claude Code (contribute stage)
         if: inputs.stage_type == 'contribute'
         uses: anthropics/claude-code-action@v1
         with:
-          prompt: |
-            # Agent Persona
-
-            ${{ steps.persona.outputs.content }}
-
-            # Task
-
-            ${{ inputs.prompt }}
-
-            # Context
-
-            - Work cycle: ${{ inputs.work_cycle }}
-            - Stage: ${{ inputs.stage_number }} (${{ inputs.stage_type }})
-            - Branch: ${{ inputs.branch }}
-
-            # Instructions
-
-            1. Read CLAUDE.md for universal rules before making any changes.
-            2. Follow the persona definition above strictly.
-            3. Only modify files within your persona's ownership scope (defined in OWNERS.yaml).
-            4. Complete the task described above.
-            5. Validate your changes (run `make validate-planning` for planning files).
-            6. Commit and push all changes to the current branch.
+          prompt: ${{ steps.contribute_prompt.outputs.content }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: "--max-turns 30"
 
@@ -221,29 +260,7 @@ jobs:
         if: inputs.stage_type == 'review' && inputs.persona != 'product-manager'
         uses: anthropics/claude-code-action@v1
         with:
-          prompt: |
-            # Agent Persona
-
-            ${{ steps.persona.outputs.content }}
-
-            # Review Task
-
-            ${{ inputs.prompt }}
-
-            # Context
-
-            - Work cycle: ${{ inputs.work_cycle }}
-            - Stage: ${{ inputs.stage_number }} (review)
-            - PR: #${{ inputs.pr_number }}
-
-            # Instructions
-
-            1. Read CLAUDE.md for universal rules.
-            2. Review the changes on this branch according to your persona's review criteria.
-            3. Submit a GitHub PR review:
-               - **Approve** if the changes meet all review criteria for your persona.
-               - **Request changes** with specific, actionable feedback if issues are found.
-            4. Do NOT modify any files. This is a review-only stage.
+          prompt: ${{ steps.review_prompt.outputs.content }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: "--max-turns 10"
 

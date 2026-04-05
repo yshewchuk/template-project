@@ -40,6 +40,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
       - name: Check if implementation PR
         id: detect
         shell: bash
@@ -58,46 +66,16 @@ jobs:
           if [ "$IS_IMPLEMENTATION" = "false" ]; then
             echo "Not an implementation PR merge, skipping"
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          pip install pyyaml > /dev/null 2>&1
-
-          # Find the milestone and PR ID from the merged branch name
-          RESULT=$(python3 -c "
-          import yaml, glob, sys, json
-
-          for plan_file in sorted(glob.glob('.planning/plans/*.yaml')):
-              with open(plan_file) as f:
-                  plan = yaml.safe_load(f)
-              for m in plan.get('milestones', []):
-                  if m.get('status') != 'in-progress':
-                      continue
-                  for pr in m.get('pull_requests', []):
-                      branch = pr.get('branch', '')
-                      if branch == '$PR_BRANCH' or pr.get('status') == 'in-progress':
-                          print(json.dumps({
-                              'plan_file': plan_file,
-                              'milestone_id': m['id'],
-                              'pr_id': pr['id']
-                          }))
-                          sys.exit(0)
-          print('{}')
-          " 2>/dev/null || echo '{}')
-
-          if [ "$RESULT" = "{}" ]; then
-            echo "Could not find matching plan entry, running with defaults"
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
             echo "plan_file=" >> "$GITHUB_OUTPUT"
             echo "milestone_id=" >> "$GITHUB_OUTPUT"
             echo "pr_id=" >> "$GITHUB_OUTPUT"
-          else
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "plan_file=$(echo "$RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("plan_file",""))')" >> "$GITHUB_OUTPUT"
-            echo "milestone_id=$(echo "$RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("milestone_id",""))')" >> "$GITHUB_OUTPUT"
-            echo "pr_id=$(echo "$RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("pr_id",""))')" >> "$GITHUB_OUTPUT"
+            echo "impl_pr_number=" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
+          python3 scripts/work-cycle/detect_impl_pr.py --branch "$PR_BRANCH" >> "$GITHUB_OUTPUT"
+
+          echo "should_run=true" >> "$GITHUB_OUTPUT"
           echo "impl_pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
 
   create-branch:
@@ -135,6 +113,12 @@ jobs:
       stage_type: contribute
       stage_label: "stage/developer"
       branch: ${{ needs.create-branch.outputs.branch }}
+      prompt_template: docs/agents/prompts/accept/developer-ci-updates.md
+      prompt_vars: >-
+        impl_pr_number=${{ needs.detect-trigger.outputs.impl_pr_number }}
+        plan_file=${{ needs.detect-trigger.outputs.plan_file }}
+        milestone_id=${{ needs.detect-trigger.outputs.milestone_id }}
+        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
       all_stages_json: >-
         [
           {"number":1,"type":"contribute","persona":"Developer","skipped":false},
@@ -142,17 +126,6 @@ jobs:
           {"number":3,"type":"contribute","persona":"Tech Lead","skipped":false},
           {"number":4,"type":"review","persona":"Product Manager","skipped":false}
         ]
-      prompt: |
-        Implementation PR #${{ needs.detect-trigger.outputs.impl_pr_number }} has been merged.
-        Plan: ${{ needs.detect-trigger.outputs.plan_file }}
-        Milestone: ${{ needs.detect-trigger.outputs.milestone_id }}
-        Completed PR: ${{ needs.detect-trigger.outputs.pr_id }}
-
-        Your task (DevOps scope):
-        1. Review the merged implementation and check if acceptance test infrastructure needs updates.
-        2. Update CI/build configuration if needed to run acceptance tests against the new code.
-        3. Only modify files within Developer ownership scope.
-        4. Commit and push changes (or skip if no updates needed).
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
@@ -167,6 +140,10 @@ jobs:
       stage_type: contribute
       stage_label: "stage/acceptance-tester"
       branch: ${{ needs.create-branch.outputs.branch }}
+      prompt_template: docs/agents/prompts/accept/acceptance-tester-assess.md
+      prompt_vars: >-
+        impl_pr_number=${{ needs.detect-trigger.outputs.impl_pr_number }}
+        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
       all_stages_json: >-
         [
           {"number":1,"type":"contribute","persona":"Developer","skipped":false},
@@ -174,18 +151,6 @@ jobs:
           {"number":3,"type":"contribute","persona":"Tech Lead","skipped":false},
           {"number":4,"type":"review","persona":"Product Manager","skipped":false}
         ]
-      prompt: |
-        Implementation PR #${{ needs.detect-trigger.outputs.impl_pr_number }} for ${{ needs.detect-trigger.outputs.pr_id }} has been merged.
-
-        Your task:
-        1. Run all acceptance tests for the milestone.
-        2. Record which tests now pass and which still fail.
-        3. Verify no regressions (previously passing tests still pass).
-        4. For tests expected to pass after this PR but still failing: flag them as implementation gaps.
-        5. For tests not expected to pass yet: confirm they fail for the right reasons.
-        6. Adjust test-to-PR mappings only if the implementation is demonstrably correct and original expectations were wrong.
-        7. Do NOT fix implementation code or iterate to make failing tests pass.
-        8. Commit observations as test result annotations or comments.
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
@@ -200,6 +165,10 @@ jobs:
       stage_type: contribute
       stage_label: "stage/tech-lead"
       branch: ${{ needs.create-branch.outputs.branch }}
+      prompt_template: docs/agents/prompts/accept/tech-lead-update-plan.md
+      prompt_vars: >-
+        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
+        plan_file=${{ needs.detect-trigger.outputs.plan_file }}
       all_stages_json: >-
         [
           {"number":1,"type":"contribute","persona":"Developer","skipped":false},
@@ -207,21 +176,6 @@ jobs:
           {"number":3,"type":"contribute","persona":"Tech Lead","skipped":false},
           {"number":4,"type":"review","persona":"Product Manager","skipped":false}
         ]
-      prompt: |
-        The Acceptance Tester has assessed test results for PR ${{ needs.detect-trigger.outputs.pr_id }}.
-
-        Your task:
-        1. Review the acceptance test results.
-        2. Update the plan at ${{ needs.detect-trigger.outputs.plan_file }} to reflect:
-           - Which acceptance tests now pass (update `passing_at_pr` fields)
-           - Mark the merged PR status as `merged`
-           - Note any regressions
-           - If tests that should pass don't: add new planned PRs to address gaps
-           - Adjust test-to-PR mappings if remapped by the Acceptance Tester
-        3. If all PRs in the milestone are merged and all tests pass:
-           - Update milestone status to `completed`
-        4. Run `make validate-planning` to verify the plan.
-        5. Commit and push changes.
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
@@ -281,6 +235,9 @@ jobs:
       stage_label: "stage/review-product-manager"
       branch: ${{ needs.create-branch.outputs.branch }}
       pr_number: ${{ needs.open-pr.outputs.pr_number }}
+      prompt_template: docs/agents/prompts/accept/pm-review-acceptance.md
+      prompt_vars: >-
+        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
       all_stages_json: >-
         [
           {"number":1,"type":"contribute","persona":"Developer","skipped":false},
@@ -288,9 +245,5 @@ jobs:
           {"number":3,"type":"contribute","persona":"Tech Lead","skipped":false},
           {"number":4,"type":"review","persona":"Product Manager","skipped":false}
         ]
-      prompt: |
-        The Accept work cycle for PR ${{ needs.detect-trigger.outputs.pr_id }} is complete.
-        Acceptance test results and plan updates are ready for review.
-        Please review the acceptance assessment for correctness.
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

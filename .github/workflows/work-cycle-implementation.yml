@@ -58,62 +58,29 @@ jobs:
           PR_BRANCH="${{ github.event.pull_request.head.ref }}"
           PR_LABELS='${{ toJson(github.event.pull_request.labels.*.name) }}'
 
-          IS_VERIFICATION=false
-          IS_ACCEPTANCE=false
-
+          IS_TRIGGER=false
           if echo "$PR_BRANCH" | grep -qE '^verify/'; then
-            IS_VERIFICATION=true
+            IS_TRIGGER=true
           fi
           if echo "$PR_LABELS" | grep -q '"work-cycle/acceptance"'; then
-            IS_ACCEPTANCE=true
+            IS_TRIGGER=true
           fi
           if echo "$PR_BRANCH" | grep -qE '^accept/'; then
-            IS_ACCEPTANCE=true
+            IS_TRIGGER=true
           fi
 
-          if [ "$IS_VERIFICATION" = "false" ] && [ "$IS_ACCEPTANCE" = "false" ]; then
+          if [ "$IS_TRIGGER" = "false" ]; then
             echo "Not a verification or acceptance PR merge, skipping"
             echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "plan_file=" >> "$GITHUB_OUTPUT"
+            echo "milestone_id=" >> "$GITHUB_OUTPUT"
+            echo "pr_id=" >> "$GITHUB_OUTPUT"
+            echo "pr_title=" >> "$GITHUB_OUTPUT"
+            echo "pr_branch=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Find the next planned PR to implement
-          RESULT=$(python3 -c "
-          import yaml, glob, sys, json
-
-          for plan_file in sorted(glob.glob('.planning/plans/*.yaml')):
-              with open(plan_file) as f:
-                  plan = yaml.safe_load(f)
-              if plan.get('status') != 'in-progress':
-                  continue
-              for m in plan.get('milestones', []):
-                  if m.get('status') != 'in-progress':
-                      continue
-                  for pr in m.get('pull_requests', []):
-                      if pr.get('status') in ('planned', 'in-progress'):
-                          print(json.dumps({
-                              'plan_file': plan_file,
-                              'milestone_id': m['id'],
-                              'pr_id': pr['id'],
-                              'pr_title': pr.get('title', ''),
-                              'pr_branch': pr.get('branch', '')
-                          }))
-                          sys.exit(0)
-          print('{}')
-          " 2>/dev/null || echo '{}')
-
-          if [ "$RESULT" = "{}" ]; then
-            echo "No pending PRs found in active milestones"
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "should_run=true" >> "$GITHUB_OUTPUT"
-          echo "plan_file=$(echo "$RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("plan_file",""))')" >> "$GITHUB_OUTPUT"
-          echo "milestone_id=$(echo "$RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("milestone_id",""))')" >> "$GITHUB_OUTPUT"
-          echo "pr_id=$(echo "$RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("pr_id",""))')" >> "$GITHUB_OUTPUT"
-          echo "pr_title=$(echo "$RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("pr_title",""))')" >> "$GITHUB_OUTPUT"
-          echo "pr_branch=$(echo "$RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("pr_branch",""))')" >> "$GITHUB_OUTPUT"
+          python3 scripts/work-cycle/detect_next_pr.py >> "$GITHUB_OUTPUT"
 
   create-branch:
     name: Create implementation branch
@@ -149,6 +116,12 @@ jobs:
       stage_type: contribute
       stage_label: "stage/developer"
       branch: ${{ needs.create-branch.outputs.branch }}
+      prompt_template: docs/agents/prompts/implementation/developer-functional-code.md
+      prompt_vars: >-
+        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
+        pr_title=${{ needs.detect-trigger.outputs.pr_title }}
+        plan_file=${{ needs.detect-trigger.outputs.plan_file }}
+        milestone_id=${{ needs.detect-trigger.outputs.milestone_id }}
       all_stages_json: >-
         [
           {"number":1,"type":"contribute","persona":"Developer","skipped":false},
@@ -157,18 +130,6 @@ jobs:
           {"number":4,"type":"review","persona":"Acceptance Tester","skipped":false},
           {"number":5,"type":"review","persona":"Product Manager","skipped":false}
         ]
-      prompt: |
-        You are implementing planned PR: ${{ needs.detect-trigger.outputs.pr_id }} — "${{ needs.detect-trigger.outputs.pr_title }}"
-        Plan file: ${{ needs.detect-trigger.outputs.plan_file }}
-        Milestone: ${{ needs.detect-trigger.outputs.milestone_id }}
-
-        Your task (functional code):
-        1. Read the plan to understand the exact scope of this PR.
-        2. Implement the functional code in the appropriate `projects/<name>/src/` directory.
-        3. Run acceptance tests for this PR to verify correctness.
-        4. Ensure linting, type checking, and build all pass.
-        5. Commit and push your changes.
-        6. This is the functional code stage only — CI/build updates, logging, and unit tests come next.
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
@@ -183,6 +144,9 @@ jobs:
       stage_type: contribute
       stage_label: "stage/developer"
       branch: ${{ needs.create-branch.outputs.branch }}
+      prompt_template: docs/agents/prompts/implementation/developer-quality-layers.md
+      prompt_vars: >-
+        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
       all_stages_json: >-
         [
           {"number":1,"type":"contribute","persona":"Developer","skipped":false},
@@ -191,16 +155,6 @@ jobs:
           {"number":4,"type":"review","persona":"Acceptance Tester","skipped":false},
           {"number":5,"type":"review","persona":"Product Manager","skipped":false}
         ]
-      prompt: |
-        Functional code for PR ${{ needs.detect-trigger.outputs.pr_id }} is complete. Now add quality layers.
-
-        Your task:
-        1. Update CI/build workflows if the implementation requires it (DevOps scope).
-        2. Add logging, monitoring hooks, and health checks where appropriate (Operator scope).
-        3. Write unit tests meeting the coverage hard gate (>= 50%) (Unit Tester scope).
-        4. Update project README.md if new patterns or commands were introduced.
-        5. Ensure all guardrails pass: lint, type check, tests, coverage, build.
-        6. Commit and push your changes.
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
@@ -260,6 +214,10 @@ jobs:
       stage_label: "stage/review-tech-lead"
       branch: ${{ needs.create-branch.outputs.branch }}
       pr_number: ${{ needs.open-pr.outputs.pr_number }}
+      prompt_template: docs/agents/prompts/implementation/tech-lead-review.md
+      prompt_vars: >-
+        pr_number=${{ needs.open-pr.outputs.pr_number }}
+        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
       all_stages_json: >-
         [
           {"number":1,"type":"contribute","persona":"Developer","skipped":false},
@@ -268,12 +226,6 @@ jobs:
           {"number":4,"type":"review","persona":"Acceptance Tester","skipped":false},
           {"number":5,"type":"review","persona":"Product Manager","skipped":false}
         ]
-      prompt: |
-        Review implementation PR #${{ needs.open-pr.outputs.pr_number }} for:
-        - Plan adherence: does the change match planned PR ${{ needs.detect-trigger.outputs.pr_id }}?
-        - Architectural consistency
-        - Security posture
-        - PR size (target < 400 lines)
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
@@ -289,6 +241,9 @@ jobs:
       stage_label: "stage/review-acceptance-tester"
       branch: ${{ needs.create-branch.outputs.branch }}
       pr_number: ${{ needs.open-pr.outputs.pr_number }}
+      prompt_template: docs/agents/prompts/implementation/acceptance-tester-review.md
+      prompt_vars: >-
+        pr_number=${{ needs.open-pr.outputs.pr_number }}
       all_stages_json: >-
         [
           {"number":1,"type":"contribute","persona":"Developer","skipped":false},
@@ -297,11 +252,6 @@ jobs:
           {"number":4,"type":"review","persona":"Acceptance Tester","skipped":false},
           {"number":5,"type":"review","persona":"Product Manager","skipped":false}
         ]
-      prompt: |
-        Review implementation PR #${{ needs.open-pr.outputs.pr_number }} for:
-        - Unit test adequacy: do they cover edge cases, error paths, and boundary conditions?
-        - Test quality: are tests deterministic, well-named, and maintainable?
-        - Regression risk: does the change risk breaking existing acceptance tests?
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
@@ -317,6 +267,11 @@ jobs:
       stage_label: "stage/review-product-manager"
       branch: ${{ needs.create-branch.outputs.branch }}
       pr_number: ${{ needs.open-pr.outputs.pr_number }}
+      prompt_template: docs/agents/prompts/implementation/pm-review-implementation.md
+      prompt_vars: >-
+        pr_number=${{ needs.open-pr.outputs.pr_number }}
+        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
+        pr_title=${{ needs.detect-trigger.outputs.pr_title }}
       all_stages_json: >-
         [
           {"number":1,"type":"contribute","persona":"Developer","skipped":false},
@@ -325,9 +280,5 @@ jobs:
           {"number":4,"type":"review","persona":"Acceptance Tester","skipped":false},
           {"number":5,"type":"review","persona":"Product Manager","skipped":false}
         ]
-      prompt: |
-        All automated review stages for implementation PR #${{ needs.open-pr.outputs.pr_number }} are complete.
-        This PR implements planned item ${{ needs.detect-trigger.outputs.pr_id }}: "${{ needs.detect-trigger.outputs.pr_title }}".
-        Please review for requirements satisfaction.
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

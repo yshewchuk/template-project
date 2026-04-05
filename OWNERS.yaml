@@ -35,6 +35,7 @@ scrum-master:
   - "docs/agents/**"
   - ".planning/schemas/**"
   - "scripts/planning/**"
+  - "scripts/work-cycle/**"
   - "OWNERS.yaml"
   - "docs/guides/**"
   - "CLAUDE.md"

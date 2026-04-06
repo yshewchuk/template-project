@@ -1,0 +1,87 @@
+work_cycle: implementation
+
+trigger:
+  type: pull_request
+  types: [closed]
+  branches: [main]
+  merged_only: true
+
+detect:
+  job_name: Detect implementation trigger
+  script: |
+    eval "$(python3 scripts/work-cycle/classify_pr.py \
+      --branch "${{ github.event.pull_request.head.ref }}" \
+      --labels '${{ toJson(github.event.pull_request.labels.*.name) }}')"
+
+    if [ "$is_verification" != "true" ] && [ "$is_acceptance" != "true" ]; then
+      echo "should_run=false" >> "$GITHUB_OUTPUT"
+      echo "plan_file=" >> "$GITHUB_OUTPUT"
+      echo "milestone_id=" >> "$GITHUB_OUTPUT"
+      echo "pr_id=" >> "$GITHUB_OUTPUT"
+      echo "pr_title=" >> "$GITHUB_OUTPUT"
+      echo "pr_branch=" >> "$GITHUB_OUTPUT"
+      exit 0
+    fi
+
+    python3 scripts/work-cycle/detect_next_pr.py >> "$GITHUB_OUTPUT"
+  outputs: [should_run, plan_file, milestone_id, pr_id, pr_title, pr_branch]
+  should_run_condition: "needs.detect.outputs.should_run == 'true'"
+  needs_python: true
+
+branch:
+  from_output: pr_branch
+  fallback_prefix: "impl"
+  fallback_suffix: "${{ needs.detect.outputs.pr_id }}"
+
+create_pr:
+  after_stage: 2
+  title: "[Implementation] ${{ needs.detect.outputs.pr_id }}: ${{ needs.detect.outputs.pr_title }}"
+  body: "## Implementation PR\n\n- **Plan PR ID:** ${{ needs.detect.outputs.pr_id }}\n- **Milestone:** ${{ needs.detect.outputs.milestone_id }}\n- **Plan file:** ${{ needs.detect.outputs.plan_file }}\n\nThis PR was created by the Implementation work cycle."
+  label: "work-cycle/implementation"
+
+stages:
+  - name: "functional code"
+    persona: developer
+    type: contribute
+    label: "stage/developer"
+    prompt_template: implementation/developer-functional-code.md
+    prompt_vars:
+      - "pr_id=${{ needs.detect.outputs.pr_id }}"
+      - "pr_title=${{ needs.detect.outputs.pr_title }}"
+      - "plan_file=${{ needs.detect.outputs.plan_file }}"
+      - "milestone_id=${{ needs.detect.outputs.milestone_id }}"
+
+  - name: "CI, logging, unit tests"
+    persona: developer
+    type: contribute
+    label: "stage/developer"
+    prompt_template: implementation/developer-quality-layers.md
+    prompt_vars:
+      - "pr_id=${{ needs.detect.outputs.pr_id }}"
+
+  - name: "review"
+    persona: tech-lead
+    type: review
+    label: "stage/review-tech-lead"
+    prompt_template: implementation/tech-lead-review.md
+    prompt_vars:
+      - "pr_number=${{ needs.open-pr.outputs.pr_number }}"
+      - "pr_id=${{ needs.detect.outputs.pr_id }}"
+
+  - name: "review"
+    persona: acceptance-tester
+    type: review
+    label: "stage/review-acceptance-tester"
+    prompt_template: implementation/acceptance-tester-review.md
+    prompt_vars:
+      - "pr_number=${{ needs.open-pr.outputs.pr_number }}"
+
+  - name: "review"
+    persona: product-manager
+    type: review
+    label: "stage/review-product-manager"
+    prompt_template: implementation/pm-review-implementation.md
+    prompt_vars:
+      - "pr_number=${{ needs.open-pr.outputs.pr_number }}"
+      - "pr_id=${{ needs.detect.outputs.pr_id }}"
+      - "pr_title=${{ needs.detect.outputs.pr_title }}"

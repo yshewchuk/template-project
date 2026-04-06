@@ -33,7 +33,7 @@
 - `CLAUDE.md` (root)
 - `README.md` (root)
 - `projects/*/CLAUDE.md` (per-project agent instructions)
-- `.github/workflows/loop-*`
+- `.github/workflows/work-cycle-*`
 - `.github/workflows/reusable/**`
 
 ## Work Cycle Participation

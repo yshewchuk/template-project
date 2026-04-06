@@ -1,0 +1,45 @@
+# Review Event Handler
+#
+# Handles the review rejection flow described in the PR Stage Model.
+# When a reviewer approves or requests changes on a work-cycle PR, this workflow
+# advances or reverts the stage accordingly.
+#
+# Flow:
+#   - On approval: update tracking comment, advance stage label to next stage
+#   - On request-changes: revert stage label to the relevant contributor,
+#     invoke the contributor agent with review feedback
+#
+# See PLAN.md "Review Rejection Flow" for details.
+
+name: "Work Cycle: Review Event Handler"
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+concurrency:
+  group: agent-execution
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  handle-review:
+    name: Handle review event
+    if: >-
+      github.event.review.state == 'approved' ||
+      github.event.review.state == 'changes_requested'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Process review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fn = require('./scripts/work-cycle/github/handle-review-event.js');
+            await fn({ github, context });

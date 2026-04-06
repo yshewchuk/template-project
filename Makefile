@@ -1,4 +1,4 @@
-.PHONY: help validate-planning check-ownership query-tickets query-plans lint test
+.PHONY: help validate-planning check-ownership query-tickets query-plans generate-workflows check-workflows test-work-cycle lint test
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -15,6 +15,15 @@ query-tickets: ## Query tickets as markdown (STATUS=backlog to filter)
 
 query-plans: ## Query plans as markdown (STATUS=in-progress to filter)
 	@python3 scripts/planning/query-plans.py $(if $(STATUS),--status $(STATUS),)
+
+generate-workflows: ## Generate work cycle workflow files from stage definitions
+	@python3 scripts/work-cycle/generate_workflows.py
+
+check-workflows: ## Verify generated workflows are up to date
+	@python3 scripts/work-cycle/generate_workflows.py --check
+
+test-work-cycle: ## Run work cycle script tests
+	@python3 -m pytest scripts/work-cycle/tests/ -v
 
 lint: ## Run linters across all projects
 	@echo "Linting not yet configured for individual projects."

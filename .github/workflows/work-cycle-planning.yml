@@ -1,0 +1,68 @@
+# AUTO-GENERATED from docs/agents/work-cycles/stages/planning.yaml
+# Do not edit manually. Run: make generate-workflows
+
+name: 'Work Cycle: Planning'
+'on':
+  push:
+    branches:
+    - main
+    paths:
+    - .planning/tickets/**
+concurrency:
+  group: agent-execution
+  cancel-in-progress: false
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+jobs:
+  detect:
+    name: Detect new ticket
+    runs-on: ubuntu-latest
+    outputs:
+      ticket_id: ${{ steps.detect.outputs.ticket_id }}
+      ticket_file: ${{ steps.detect.outputs.ticket_file }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+    - name: Detect new ticket
+      id: detect
+      shell: bash
+      run: |-
+        DIFF_OUTPUT=$(git diff --name-only HEAD~1 HEAD -- '.planning/tickets/' || true)
+        python3 scripts/work-cycle/detect_ticket.py --diff-output "$DIFF_OUTPUT" >> "$GITHUB_OUTPUT"
+  stage-1-tech-lead-create-plan:
+    name: 'Stage 1: Tech Lead — create plan'
+    needs:
+    - detect
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: planning
+      persona: tech-lead
+      stage_number: '1'
+      stage_type: contribute
+      stage_label: stage/tech-lead
+      prompt_template: docs/agents/prompts/planning/tech-lead-create-plan.md
+      prompt_vars: ticket_file=${{ needs.detect.outputs.ticket_file }} ticket_id=${{ needs.detect.outputs.ticket_id }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":2,"type":"review","persona":"Product Manager","skipped":false}]'
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  stage-2-product-manager-review-plan:
+    name: 'Stage 2: Product Manager — review plan'
+    needs:
+    - detect
+    - stage-1-tech-lead-create-plan
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: planning
+      persona: product-manager
+      stage_number: '2'
+      stage_type: review
+      stage_label: stage/review-product-manager
+      prompt_template: docs/agents/prompts/planning/pm-review-plan.md
+      prompt_vars: ticket_id=${{ needs.detect.outputs.ticket_id }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":2,"type":"review","persona":"Product Manager","skipped":false}]'
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

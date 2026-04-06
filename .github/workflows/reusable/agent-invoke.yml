@@ -1,0 +1,213 @@
+name: Invoke Agent
+
+on:
+  workflow_call:
+    inputs:
+      work_cycle:
+        description: "Work cycle name (planning, verification, implementation, accept, improve)"
+        type: string
+        required: true
+      persona:
+        description: "Persona identifier (tech-lead, developer, acceptance-tester, scrum-master)"
+        type: string
+        required: true
+      stage_number:
+        description: "Current stage number (1-indexed)"
+        type: string
+        required: true
+      stage_type:
+        description: "Stage type: contribute or review"
+        type: string
+        required: true
+      stage_label:
+        description: "PR label for this stage (e.g. stage/tech-lead)"
+        type: string
+        required: true
+      prompt_template:
+        description: "Path to prompt template file under docs/agents/prompts/"
+        type: string
+        required: true
+      prompt_vars:
+        description: "Space-separated KEY=VALUE pairs for prompt template substitution"
+        type: string
+        required: false
+        default: ""
+      pr_number:
+        description: "PR number to operate on"
+        type: string
+        required: false
+        default: ""
+      branch:
+        description: "Branch to check out and work on"
+        type: string
+        required: false
+        default: ""
+      all_stages_json:
+        description: "JSON array of all stage definitions for the tracking comment"
+        type: string
+        required: true
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+    outputs:
+      conclusion:
+        description: "Stage result (success or failure)"
+        value: ${{ jobs.invoke.outputs.conclusion }}
+
+jobs:
+  invoke:
+    name: "Stage ${{ inputs.stage_number }}: ${{ inputs.persona }} (${{ inputs.stage_type }})"
+    runs-on: ubuntu-latest
+    outputs:
+      conclusion: ${{ steps.conclusion.outputs.result }}
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.head_ref || github.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Manage stage labels
+        if: inputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fn = require('./scripts/work-cycle/github/manage-stage-labels.js');
+            await fn({ github, context });
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          STAGE_LABEL: ${{ inputs.stage_label }}
+          STAGE_TYPE: ${{ inputs.stage_type }}
+
+      - name: Render tracking comment
+        if: inputs.pr_number != ''
+        id: tracking
+        run: |
+          BODY=$(python3 scripts/work-cycle/render_tracking_comment.py \
+            --stages '${{ inputs.all_stages_json }}' \
+            --current-stage '${{ inputs.stage_number }}' \
+            --work-cycle '${{ inputs.work_cycle }}' \
+            --current-persona '${{ inputs.persona }}' \
+            --current-type '${{ inputs.stage_type }}')
+          {
+            echo "body<<TRACKING_EOF"
+            echo "$BODY"
+            echo "TRACKING_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update tracking comment
+        if: inputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fn = require('./scripts/work-cycle/github/upsert-tracking-comment.js');
+            await fn({ github, context });
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          TRACKING_BODY: ${{ steps.tracking.outputs.body }}
+
+      - name: Read persona definition
+        id: persona
+        run: |
+          PERSONA_FILE="docs/agents/personas/${{ inputs.persona }}.md"
+          if [ -f "$PERSONA_FILE" ]; then
+            {
+              echo "content<<PERSONA_EOF"
+              cat "$PERSONA_FILE"
+              echo ""
+              echo "PERSONA_EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "content=Persona definition not found at $PERSONA_FILE" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Render task prompt
+        id: task_prompt
+        run: |
+          RENDERED=$(python3 scripts/work-cycle/render_prompt.py \
+            --template '${{ inputs.prompt_template }}' \
+            ${{ inputs.prompt_vars }})
+          {
+            echo "content<<TASK_PROMPT_EOF"
+            echo "$RENDERED"
+            echo "TASK_PROMPT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Render full contribute prompt
+        if: inputs.stage_type == 'contribute'
+        id: contribute_prompt
+        run: |
+          RENDERED=$(python3 scripts/work-cycle/render_prompt.py \
+            --template docs/agents/prompts/_shared/contribute.md \
+            "persona_content=${{ steps.persona.outputs.content }}" \
+            "task_prompt=${{ steps.task_prompt.outputs.content }}" \
+            "work_cycle=${{ inputs.work_cycle }}" \
+            "stage_number=${{ inputs.stage_number }}" \
+            "stage_type=${{ inputs.stage_type }}" \
+            "branch=${{ inputs.branch }}")
+          {
+            echo "content<<FULL_PROMPT_EOF"
+            echo "$RENDERED"
+            echo "FULL_PROMPT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Render full review prompt
+        if: inputs.stage_type == 'review' && inputs.persona != 'product-manager'
+        id: review_prompt
+        run: |
+          RENDERED=$(python3 scripts/work-cycle/render_prompt.py \
+            --template docs/agents/prompts/_shared/review.md \
+            "persona_content=${{ steps.persona.outputs.content }}" \
+            "task_prompt=${{ steps.task_prompt.outputs.content }}" \
+            "work_cycle=${{ inputs.work_cycle }}" \
+            "stage_number=${{ inputs.stage_number }}" \
+            "pr_number=${{ inputs.pr_number }}")
+          {
+            echo "content<<FULL_PROMPT_EOF"
+            echo "$RENDERED"
+            echo "FULL_PROMPT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Invoke Claude Code (contribute stage)
+        if: inputs.stage_type == 'contribute'
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: ${{ steps.contribute_prompt.outputs.content }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--max-turns 30"
+
+      - name: Invoke Claude Code (automated review stage)
+        if: inputs.stage_type == 'review' && inputs.persona != 'product-manager'
+        uses: anthropics/claude-code-action@v1
+        with:
+          prompt: ${{ steps.review_prompt.outputs.content }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--max-turns 10"
+
+      - name: Request human review
+        if: inputs.stage_type == 'review' && inputs.persona == 'product-manager'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fn = require('./scripts/work-cycle/github/request-human-review.js');
+            await fn({ github, context });
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          WORK_CYCLE: ${{ inputs.work_cycle }}
+
+      - name: Set conclusion
+        id: conclusion
+        if: always()
+        run: echo "result=success" >> "$GITHUB_OUTPUT"

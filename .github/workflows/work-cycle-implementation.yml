@@ -1,0 +1,216 @@
+# AUTO-GENERATED from docs/agents/work-cycles/stages/implementation.yaml
+# Do not edit manually. Run: make generate-workflows
+
+name: 'Work Cycle: Implementation'
+'on':
+  pull_request:
+    branches:
+    - main
+    types:
+    - closed
+concurrency:
+  group: agent-execution
+  cancel-in-progress: false
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+jobs:
+  detect:
+    name: Detect implementation trigger
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.detect.outputs.should_run }}
+      plan_file: ${{ steps.detect.outputs.plan_file }}
+      milestone_id: ${{ steps.detect.outputs.milestone_id }}
+      pr_id: ${{ steps.detect.outputs.pr_id }}
+      pr_title: ${{ steps.detect.outputs.pr_title }}
+      pr_branch: ${{ steps.detect.outputs.pr_branch }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: pip install pyyaml
+    - name: Detect implementation trigger
+      id: detect
+      shell: bash
+      run: |-
+        eval "$(python3 scripts/work-cycle/classify_pr.py \
+          --branch "${{ github.event.pull_request.head.ref }}" \
+          --labels '${{ toJson(github.event.pull_request.labels.*.name) }}')"
+
+        if [ "$is_verification" != "true" ] && [ "$is_acceptance" != "true" ]; then
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+          echo "plan_file=" >> "$GITHUB_OUTPUT"
+          echo "milestone_id=" >> "$GITHUB_OUTPUT"
+          echo "pr_id=" >> "$GITHUB_OUTPUT"
+          echo "pr_title=" >> "$GITHUB_OUTPUT"
+          echo "pr_branch=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        python3 scripts/work-cycle/detect_next_pr.py >> "$GITHUB_OUTPUT"
+    if: github.event.pull_request.merged == true
+  create-branch:
+    name: Create implementation branch
+    needs: detect
+    if: needs.detect.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.branch.outputs.name }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Create branch
+      id: branch
+      shell: bash
+      run: |-
+        BRANCH="${{ needs.detect.outputs.pr_branch }}"
+        if [ -z "$BRANCH" ]; then
+          BRANCH="impl/${{ needs.detect.outputs.pr_id }}"
+        fi
+        git checkout -b "$BRANCH"
+        git push -u origin "$BRANCH"
+        echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+  stage-1-developer-functional-code:
+    name: 'Stage 1: Developer — functional code'
+    needs:
+    - detect
+    - create-branch
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: implementation
+      persona: developer
+      stage_number: '1'
+      stage_type: contribute
+      stage_label: stage/developer
+      prompt_template: docs/agents/prompts/implementation/developer-functional-code.md
+      prompt_vars: pr_id=${{ needs.detect.outputs.pr_id }} pr_title=${{ needs.detect.outputs.pr_title }} plan_file=${{ needs.detect.outputs.plan_file }} milestone_id=${{ needs.detect.outputs.milestone_id
+        }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Developer","skipped":false},{"number":2,"type":"contribute","persona":"Developer","skipped":false},{"number":3,"type":"review","persona":"Tech
+        Lead","skipped":false},{"number":4,"type":"review","persona":"Acceptance Tester","skipped":false},{"number":5,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  stage-2-developer-ci-logging-unit-tests:
+    name: 'Stage 2: Developer — CI, logging, unit tests'
+    needs:
+    - detect
+    - create-branch
+    - stage-1-developer-functional-code
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: implementation
+      persona: developer
+      stage_number: '2'
+      stage_type: contribute
+      stage_label: stage/developer
+      prompt_template: docs/agents/prompts/implementation/developer-quality-layers.md
+      prompt_vars: pr_id=${{ needs.detect.outputs.pr_id }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Developer","skipped":false},{"number":2,"type":"contribute","persona":"Developer","skipped":false},{"number":3,"type":"review","persona":"Tech
+        Lead","skipped":false},{"number":4,"type":"review","persona":"Acceptance Tester","skipped":false},{"number":5,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  open-pr:
+    name: Open implementation PR
+    needs:
+    - detect
+    - create-branch
+    - stage-2-developer-ci-logging-unit-tests
+    runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ steps.pr.outputs.number }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.create-branch.outputs.branch }}
+    - name: Create PR
+      id: pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fn = require('./scripts/work-cycle/github/create-work-cycle-pr.js');
+          await fn({ github, context, core });
+      env:
+        PR_TITLE: '[Implementation] ${{ needs.detect.outputs.pr_id }}: ${{ needs.detect.outputs.pr_title }}'
+        PR_BODY: |-
+          ## Implementation PR
+
+          - **Plan PR ID:** ${{ needs.detect.outputs.pr_id }}
+          - **Milestone:** ${{ needs.detect.outputs.milestone_id }}
+          - **Plan file:** ${{ needs.detect.outputs.plan_file }}
+
+          This PR was created by the Implementation work cycle.
+        HEAD_BRANCH: ${{ needs.create-branch.outputs.branch }}
+        WORK_CYCLE_LABEL: work-cycle/implementation
+  stage-3-tech-lead-review:
+    name: 'Stage 3: Tech Lead — review'
+    needs:
+    - detect
+    - create-branch
+    - open-pr
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: implementation
+      persona: tech-lead
+      stage_number: '3'
+      stage_type: review
+      stage_label: stage/review-tech-lead
+      prompt_template: docs/agents/prompts/implementation/tech-lead-review.md
+      prompt_vars: pr_number=${{ needs.open-pr.outputs.pr_number }} pr_id=${{ needs.detect.outputs.pr_id }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Developer","skipped":false},{"number":2,"type":"contribute","persona":"Developer","skipped":false},{"number":3,"type":"review","persona":"Tech
+        Lead","skipped":false},{"number":4,"type":"review","persona":"Acceptance Tester","skipped":false},{"number":5,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
+      pr_number: ${{ needs.open-pr.outputs.pr_number }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  stage-4-acceptance-tester-review:
+    name: 'Stage 4: Acceptance Tester — review'
+    needs:
+    - detect
+    - create-branch
+    - open-pr
+    - stage-3-tech-lead-review
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: implementation
+      persona: acceptance-tester
+      stage_number: '4'
+      stage_type: review
+      stage_label: stage/review-acceptance-tester
+      prompt_template: docs/agents/prompts/implementation/acceptance-tester-review.md
+      prompt_vars: pr_number=${{ needs.open-pr.outputs.pr_number }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Developer","skipped":false},{"number":2,"type":"contribute","persona":"Developer","skipped":false},{"number":3,"type":"review","persona":"Tech
+        Lead","skipped":false},{"number":4,"type":"review","persona":"Acceptance Tester","skipped":false},{"number":5,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
+      pr_number: ${{ needs.open-pr.outputs.pr_number }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  stage-5-product-manager-review:
+    name: 'Stage 5: Product Manager — review'
+    needs:
+    - detect
+    - create-branch
+    - open-pr
+    - stage-4-acceptance-tester-review
+    uses: ./.github/workflows/reusable/agent-invoke.yml
+    with:
+      work_cycle: implementation
+      persona: product-manager
+      stage_number: '5'
+      stage_type: review
+      stage_label: stage/review-product-manager
+      prompt_template: docs/agents/prompts/implementation/pm-review-implementation.md
+      prompt_vars: pr_number=${{ needs.open-pr.outputs.pr_number }} pr_id=${{ needs.detect.outputs.pr_id }} pr_title=${{ needs.detect.outputs.pr_title }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Developer","skipped":false},{"number":2,"type":"contribute","persona":"Developer","skipped":false},{"number":3,"type":"review","persona":"Tech
+        Lead","skipped":false},{"number":4,"type":"review","persona":"Acceptance Tester","skipped":false},{"number":5,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
+      pr_number: ${{ needs.open-pr.outputs.pr_number }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

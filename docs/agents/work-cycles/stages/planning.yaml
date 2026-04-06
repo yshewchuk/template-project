@@ -1,0 +1,35 @@
+work_cycle: planning
+
+trigger:
+  type: push
+  branches: [main]
+  paths: [".planning/tickets/**"]
+
+detect:
+  job_name: Detect new ticket
+  script: |
+    DIFF_OUTPUT=$(git diff --name-only HEAD~1 HEAD -- '.planning/tickets/' || true)
+    python3 scripts/work-cycle/detect_ticket.py --diff-output "$DIFF_OUTPUT" >> "$GITHUB_OUTPUT"
+  outputs: [ticket_id, ticket_file]
+  should_run_condition: "needs.detect.outputs.ticket_id != ''"
+  fetch_depth: 2
+
+# Planning does not auto-create a branch or PR -- the agent handles both.
+
+stages:
+  - name: "create plan"
+    persona: tech-lead
+    type: contribute
+    label: "stage/tech-lead"
+    prompt_template: planning/tech-lead-create-plan.md
+    prompt_vars:
+      - "ticket_file=${{ needs.detect.outputs.ticket_file }}"
+      - "ticket_id=${{ needs.detect.outputs.ticket_id }}"
+
+  - name: "review plan"
+    persona: product-manager
+    type: review
+    label: "stage/review-product-manager"
+    prompt_template: planning/pm-review-plan.md
+    prompt_vars:
+      - "ticket_id=${{ needs.detect.outputs.ticket_id }}"

@@ -37,7 +37,7 @@ jobs:
     name: 'Stage 1: Tech Lead — create plan'
     needs:
     - detect
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: planning
       persona: tech-lead
@@ -54,7 +54,7 @@ jobs:
     needs:
     - detect
     - stage-1-tech-lead-create-plan
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: planning
       persona: product-manager

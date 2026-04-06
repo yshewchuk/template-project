@@ -118,7 +118,7 @@ scrum-master:
   - "CLAUDE.md"
   - "README.md"
   - ".github/workflows/work-cycle-*"
-  - ".github/workflows/reusable/**"
+  - ".github/workflows/agent-invoke.yml"
 ```
 
 ---
@@ -275,8 +275,7 @@ Improve PR -> human review -> merge
 |   +-- work-cycle-implementation.yml    # Implementation work cycle orchestration
 |   +-- work-cycle-accept.yml            # Accept work cycle orchestration
 |   +-- work-cycle-improve.yml           # Improve work cycle orchestration
-|   +-- reusable/
-|       +-- agent-invoke.yml       # Shared agent invocation template
+|   +-- agent-invoke.yml              # Shared agent invocation template
 |
 +-- CLAUDE.md                      # Root agent instructions (source of truth)
 +-- OWNERS.yaml                    # File/folder ownership per role
@@ -400,7 +399,7 @@ Each work cycle has a dedicated GitHub Actions workflow triggered by specific ev
 - `work-cycle-accept.yml` -- triggered when implementation PR is ready
 - `work-cycle-improve.yml` -- triggered when milestone completes
 
-All use `reusable/agent-invoke.yml` which handles checkout, persona loading, context extraction, ownership validation, and Claude Code invocation.
+All use `agent-invoke.yml` which handles checkout, persona loading, context extraction, ownership validation, and Claude Code invocation.
 
 ### Serialized Execution
 
@@ -518,7 +517,7 @@ This creates a tight feedback cycle between contributor and reviewer until the r
 
 #### Implementation Details
 
-The `reusable/agent-invoke.yml` template handles stage management:
+The `agent-invoke.yml` template handles stage management:
 
 1. Read the current stage from PR labels
 2. Determine if this is a contribute or review stage
@@ -637,7 +636,7 @@ GitHub Actions for all five work cycles wired for Phase 1 agents.
 
 **Deliverables:**
 - `work-cycle-planning.yml`, `work-cycle-verification.yml`, `work-cycle-implementation.yml`, `work-cycle-accept.yml`, `work-cycle-improve.yml`
-- `reusable/agent-invoke.yml`
+- `agent-invoke.yml`
 - Concurrency group for serialized execution
 
 **Done when:** Each work cycle triggers correctly and invokes the right agents in order.

@@ -195,7 +195,7 @@ def build_stage_job(
     job: dict = {
         "name": f"Stage {stage_number}: {display} — {stage['name']}",
         "needs": needs,
-        "uses": "./.github/workflows/reusable/agent-invoke.yml",
+        "uses": "./.github/workflows/agent-invoke.yml",
         "with": with_block,
         "secrets": {"ANTHROPIC_API_KEY": "${{ secrets.ANTHROPIC_API_KEY }}"},
     }

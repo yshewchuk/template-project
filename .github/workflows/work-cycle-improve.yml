@@ -71,7 +71,7 @@ jobs:
     needs:
     - detect
     - create-branch
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: improve
       persona: scrum-master
@@ -123,7 +123,7 @@ jobs:
     - detect
     - create-branch
     - open-pr
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: improve
       persona: product-manager
@@ -145,7 +145,7 @@ jobs:
     - create-branch
     - open-pr
     - stage-2-product-manager-review
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: improve
       persona: tech-lead

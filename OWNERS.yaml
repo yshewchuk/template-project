@@ -42,4 +42,4 @@ scrum-master:
   - "README.md"
   - "projects/*/CLAUDE.md"
   - ".github/workflows/work-cycle-*"
-  - ".github/workflows/reusable/**"
+  - ".github/workflows/agent-invoke.yml"

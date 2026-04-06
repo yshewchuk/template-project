@@ -34,7 +34,7 @@
 - `README.md` (root)
 - `projects/*/CLAUDE.md` (per-project agent instructions)
 - `.github/workflows/work-cycle-*`
-- `.github/workflows/reusable/**`
+- `.github/workflows/agent-invoke.yml`
 
 ## Work Cycle Participation
 

@@ -71,7 +71,7 @@ jobs:
     needs:
     - detect
     - create-branch
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: verification
       persona: tech-lead
@@ -91,7 +91,7 @@ jobs:
     - detect
     - create-branch
     - stage-1-tech-lead-confirm-milestone
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: verification
       persona: developer
@@ -111,7 +111,7 @@ jobs:
     - detect
     - create-branch
     - stage-2-developer-ci-build-setup
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: verification
       persona: acceptance-tester
@@ -131,7 +131,7 @@ jobs:
     - detect
     - create-branch
     - stage-3-acceptance-tester-write-tests
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: verification
       persona: tech-lead
@@ -151,7 +151,7 @@ jobs:
     - detect
     - create-branch
     - stage-4-tech-lead-test-to-pr-mappings
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: verification
       persona: product-manager

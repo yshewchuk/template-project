@@ -85,7 +85,7 @@ jobs:
     needs:
     - detect
     - create-branch
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: accept
       persona: developer
@@ -106,7 +106,7 @@ jobs:
     - detect
     - create-branch
     - stage-1-developer-ci-updates
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: accept
       persona: acceptance-tester
@@ -126,7 +126,7 @@ jobs:
     - detect
     - create-branch
     - stage-2-acceptance-tester-assess-tests
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: accept
       persona: tech-lead
@@ -179,7 +179,7 @@ jobs:
     - detect
     - create-branch
     - open-pr
-    uses: ./.github/workflows/reusable/agent-invoke.yml
+    uses: ./.github/workflows/agent-invoke.yml
     with:
       work_cycle: accept
       persona: product-manager

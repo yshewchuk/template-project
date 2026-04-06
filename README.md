@@ -7,7 +7,6 @@ An example monorepo demonstrating how a team of specialized AI agents can collab
 ```
 /
 ├── .github/workflows/          # CI and work cycle orchestration workflows
-│   └── reusable/               # Shared workflow templates
 ├── projects/
 │   ├── web-game/               # TypeScript (React + Vite)
 │   ├── mobile-game/            # Kotlin (Android)

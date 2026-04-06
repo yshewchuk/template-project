@@ -1,0 +1,82 @@
+work_cycle: accept
+
+trigger:
+  type: pull_request
+  types: [closed]
+  branches: [main]
+  merged_only: true
+
+detect:
+  job_name: Detect implementation merge
+  script: |
+    PR_BRANCH="${{ github.event.pull_request.head.ref }}"
+
+    eval "$(python3 scripts/work-cycle/classify_pr.py \
+      --branch "$PR_BRANCH" \
+      --labels '${{ toJson(github.event.pull_request.labels.*.name) }}')"
+
+    if [ "$is_implementation" != "true" ]; then
+      echo "should_run=false" >> "$GITHUB_OUTPUT"
+      echo "plan_file=" >> "$GITHUB_OUTPUT"
+      echo "milestone_id=" >> "$GITHUB_OUTPUT"
+      echo "pr_id=" >> "$GITHUB_OUTPUT"
+      echo "impl_pr_number=" >> "$GITHUB_OUTPUT"
+      exit 0
+    fi
+
+    python3 scripts/work-cycle/detect_impl_pr.py --branch "$PR_BRANCH" >> "$GITHUB_OUTPUT"
+
+    echo "should_run=true" >> "$GITHUB_OUTPUT"
+    echo "impl_pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+  outputs: [should_run, plan_file, milestone_id, pr_id, impl_pr_number]
+  should_run_condition: "needs.detect.outputs.should_run == 'true'"
+  needs_python: true
+
+branch:
+  prefix: "accept"
+  suffix: "${{ needs.detect.outputs.pr_id }}"
+  fallback_suffix: "${{ github.event.pull_request.number }}"
+
+create_pr:
+  after_stage: 3
+  title: "[Accept] Assessment for ${{ needs.detect.outputs.pr_id || github.event.pull_request.number }}"
+  body: "## Acceptance Assessment\n\n- **Implementation PR:** #${{ needs.detect.outputs.impl_pr_number }}\n- **Plan PR ID:** ${{ needs.detect.outputs.pr_id }}\n- **Milestone:** ${{ needs.detect.outputs.milestone_id }}\n\nThis PR records acceptance test results and plan updates following an implementation merge."
+  label: "work-cycle/acceptance"
+
+stages:
+  - name: "CI updates"
+    persona: developer
+    type: contribute
+    label: "stage/developer"
+    prompt_template: accept/developer-ci-updates.md
+    prompt_vars:
+      - "impl_pr_number=${{ needs.detect.outputs.impl_pr_number }}"
+      - "plan_file=${{ needs.detect.outputs.plan_file }}"
+      - "milestone_id=${{ needs.detect.outputs.milestone_id }}"
+      - "pr_id=${{ needs.detect.outputs.pr_id }}"
+
+  - name: "assess tests"
+    persona: acceptance-tester
+    type: contribute
+    label: "stage/acceptance-tester"
+    prompt_template: accept/acceptance-tester-assess.md
+    prompt_vars:
+      - "impl_pr_number=${{ needs.detect.outputs.impl_pr_number }}"
+      - "pr_id=${{ needs.detect.outputs.pr_id }}"
+
+  - name: "update plan"
+    persona: tech-lead
+    type: contribute
+    label: "stage/tech-lead"
+    prompt_template: accept/tech-lead-update-plan.md
+    prompt_vars:
+      - "pr_id=${{ needs.detect.outputs.pr_id }}"
+      - "plan_file=${{ needs.detect.outputs.plan_file }}"
+
+  - name: "review"
+    persona: product-manager
+    type: review
+    label: "stage/review-product-manager"
+    prompt_template: accept/pm-review-acceptance.md
+    prompt_vars:
+      - "pr_id=${{ needs.detect.outputs.pr_id }}"

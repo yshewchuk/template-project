@@ -1,0 +1,75 @@
+work_cycle: verification
+
+trigger:
+  type: push
+  branches: [main]
+  paths: [".planning/plans/**"]
+
+detect:
+  job_name: Detect activated milestone
+  script: |
+    CHANGED=$(git diff --name-only HEAD~1 HEAD -- '.planning/plans/' || true)
+    if [ -z "$CHANGED" ]; then
+      echo "should_run=false" >> "$GITHUB_OUTPUT"
+      echo "plan_file=" >> "$GITHUB_OUTPUT"
+      echo "plan_id=" >> "$GITHUB_OUTPUT"
+      echo "milestone_id=" >> "$GITHUB_OUTPUT"
+      exit 0
+    fi
+    python3 scripts/work-cycle/detect_milestone.py --plan-files $CHANGED >> "$GITHUB_OUTPUT"
+  outputs: [plan_file, plan_id, milestone_id, should_run]
+  should_run_condition: "needs.detect.outputs.should_run == 'true'"
+  needs_python: true
+  fetch_depth: 2
+
+branch:
+  prefix: "verify"
+  suffix: "${{ needs.detect.outputs.milestone_id }}"
+
+create_pr:
+  # Verification does not auto-create a PR before review stages
+
+stages:
+  - name: "confirm milestone"
+    persona: tech-lead
+    type: contribute
+    label: "stage/tech-lead"
+    prompt_template: verification/tech-lead-confirm-milestone.md
+    prompt_vars:
+      - "milestone_id=${{ needs.detect.outputs.milestone_id }}"
+      - "plan_file=${{ needs.detect.outputs.plan_file }}"
+
+  - name: "CI/build setup"
+    persona: developer
+    type: contribute
+    label: "stage/developer"
+    prompt_template: verification/developer-ci-setup.md
+    prompt_vars:
+      - "milestone_id=${{ needs.detect.outputs.milestone_id }}"
+      - "plan_file=${{ needs.detect.outputs.plan_file }}"
+
+  - name: "write tests"
+    persona: acceptance-tester
+    type: contribute
+    label: "stage/acceptance-tester"
+    prompt_template: verification/acceptance-tester-write-tests.md
+    prompt_vars:
+      - "milestone_id=${{ needs.detect.outputs.milestone_id }}"
+      - "plan_file=${{ needs.detect.outputs.plan_file }}"
+
+  - name: "test-to-PR mappings"
+    persona: tech-lead
+    type: contribute
+    label: "stage/tech-lead"
+    prompt_template: verification/tech-lead-test-mappings.md
+    prompt_vars:
+      - "milestone_id=${{ needs.detect.outputs.milestone_id }}"
+      - "plan_file=${{ needs.detect.outputs.plan_file }}"
+
+  - name: "review"
+    persona: product-manager
+    type: review
+    label: "stage/review-product-manager"
+    prompt_template: verification/pm-review-verification.md
+    prompt_vars:
+      - "milestone_id=${{ needs.detect.outputs.milestone_id }}"

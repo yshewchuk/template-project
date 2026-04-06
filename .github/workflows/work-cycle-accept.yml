@@ -1,34 +1,23 @@
-# Accept Work Cycle
-#
-# Trigger: an implementation PR is merged.
-# Stages:
-#   1. Developer (contribute) — update build/CI for acceptance tests if needed
-#   2. Acceptance Tester (contribute) — run acceptance tests, record results
-#   3. Tech Lead (contribute) — update plan with acceptance state
-#   4. Product Manager (review) — review acceptance results and plan updates
-#
-# See docs/agents/work-cycles/accept.md for details.
+# AUTO-GENERATED from docs/agents/work-cycles/stages/accept.yaml
+# Do not edit manually. Run: make generate-workflows
 
-name: "Work Cycle: Accept"
-
-on:
+name: 'Work Cycle: Accept'
+'on':
   pull_request:
-    types: [closed]
-    branches: [main]
-
+    branches:
+    - main
+    types:
+    - closed
 concurrency:
   group: agent-execution
   cancel-in-progress: false
-
 permissions:
   contents: write
   pull-requests: write
   issues: write
-
 jobs:
-  detect-trigger:
+  detect:
     name: Detect implementation merge
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.detect.outputs.should_run }}
@@ -37,187 +26,171 @@ jobs:
       pr_id: ${{ steps.detect.outputs.pr_id }}
       impl_pr_number: ${{ steps.detect.outputs.impl_pr_number }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: pip install pyyaml
+    - name: Detect implementation merge
+      id: detect
+      shell: bash
+      run: |-
+        PR_BRANCH="${{ github.event.pull_request.head.ref }}"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+        eval "$(python3 scripts/work-cycle/classify_pr.py \
+          --branch "$PR_BRANCH" \
+          --labels '${{ toJson(github.event.pull_request.labels.*.name) }}')"
 
-      - name: Install dependencies
-        run: pip install pyyaml
+        if [ "$is_implementation" != "true" ]; then
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+          echo "plan_file=" >> "$GITHUB_OUTPUT"
+          echo "milestone_id=" >> "$GITHUB_OUTPUT"
+          echo "pr_id=" >> "$GITHUB_OUTPUT"
+          echo "impl_pr_number=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
 
-      - name: Classify and detect plan context
-        id: detect
-        run: |
-          PR_BRANCH="${{ github.event.pull_request.head.ref }}"
+        python3 scripts/work-cycle/detect_impl_pr.py --branch "$PR_BRANCH" >> "$GITHUB_OUTPUT"
 
-          eval "$(python3 scripts/work-cycle/classify_pr.py \
-            --branch "$PR_BRANCH" \
-            --labels '${{ toJson(github.event.pull_request.labels.*.name) }}')"
-
-          if [ "$is_implementation" != "true" ]; then
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "plan_file=" >> "$GITHUB_OUTPUT"
-            echo "milestone_id=" >> "$GITHUB_OUTPUT"
-            echo "pr_id=" >> "$GITHUB_OUTPUT"
-            echo "impl_pr_number=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          python3 scripts/work-cycle/detect_impl_pr.py --branch "$PR_BRANCH" >> "$GITHUB_OUTPUT"
-
-          echo "should_run=true" >> "$GITHUB_OUTPUT"
-          echo "impl_pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-
+        echo "should_run=true" >> "$GITHUB_OUTPUT"
+        echo "impl_pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+    if: github.event.pull_request.merged == true
   create-branch:
-    name: Create acceptance branch
-    needs: detect-trigger
-    if: needs.detect-trigger.outputs.should_run == 'true'
+    name: Create accept branch
+    needs: detect
+    if: needs.detect.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     outputs:
       branch: ${{ steps.branch.outputs.name }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Create branch
-        id: branch
-        shell: bash
-        run: |
-          SUFFIX="${{ needs.detect-trigger.outputs.pr_id }}"
-          if [ -z "$SUFFIX" ]; then
-            SUFFIX="${{ github.event.pull_request.number }}"
-          fi
-          BRANCH="accept/$SUFFIX"
-          git checkout -b "$BRANCH"
-          git push -u origin "$BRANCH"
-          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
-
-  stage-1-developer-ci:
-    name: "Stage 1: Developer — CI updates"
-    needs: [detect-trigger, create-branch]
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Create branch
+      id: branch
+      shell: bash
+      run: |-
+        SUFFIX="${{ needs.detect.outputs.pr_id }}"
+        if [ -z "$SUFFIX" ]; then
+          SUFFIX="${{ github.event.pull_request.number }}"
+        fi
+        BRANCH="accept/$SUFFIX"
+        git checkout -b "$BRANCH"
+        git push -u origin "$BRANCH"
+        echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+  stage-1-developer-ci-updates:
+    name: 'Stage 1: Developer — CI updates'
+    needs:
+    - detect
+    - create-branch
     uses: ./.github/workflows/reusable/agent-invoke.yml
     with:
       work_cycle: accept
       persona: developer
-      stage_number: "1"
+      stage_number: '1'
       stage_type: contribute
-      stage_label: "stage/developer"
-      branch: ${{ needs.create-branch.outputs.branch }}
+      stage_label: stage/developer
       prompt_template: docs/agents/prompts/accept/developer-ci-updates.md
-      prompt_vars: >-
-        impl_pr_number=${{ needs.detect-trigger.outputs.impl_pr_number }}
-        plan_file=${{ needs.detect-trigger.outputs.plan_file }}
-        milestone_id=${{ needs.detect-trigger.outputs.milestone_id }}
-        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
-      all_stages_json: >-
-        [
-          {"number":1,"type":"contribute","persona":"Developer","skipped":false},
-          {"number":2,"type":"contribute","persona":"Acceptance Tester","skipped":false},
-          {"number":3,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":4,"type":"review","persona":"Product Manager","skipped":false}
-        ]
+      prompt_vars: impl_pr_number=${{ needs.detect.outputs.impl_pr_number }} plan_file=${{ needs.detect.outputs.plan_file }} milestone_id=${{ needs.detect.outputs.milestone_id }} pr_id=${{ needs.detect.outputs.pr_id
+        }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Developer","skipped":false},{"number":2,"type":"contribute","persona":"Acceptance Tester","skipped":false},{"number":3,"type":"contribute","persona":"Tech
+        Lead","skipped":false},{"number":4,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-  stage-2-acceptance-tester:
-    name: "Stage 2: Acceptance Tester — assess tests"
-    needs: [detect-trigger, create-branch, stage-1-developer-ci]
+  stage-2-acceptance-tester-assess-tests:
+    name: 'Stage 2: Acceptance Tester — assess tests'
+    needs:
+    - detect
+    - create-branch
+    - stage-1-developer-ci-updates
     uses: ./.github/workflows/reusable/agent-invoke.yml
     with:
       work_cycle: accept
       persona: acceptance-tester
-      stage_number: "2"
+      stage_number: '2'
       stage_type: contribute
-      stage_label: "stage/acceptance-tester"
-      branch: ${{ needs.create-branch.outputs.branch }}
+      stage_label: stage/acceptance-tester
       prompt_template: docs/agents/prompts/accept/acceptance-tester-assess.md
-      prompt_vars: >-
-        impl_pr_number=${{ needs.detect-trigger.outputs.impl_pr_number }}
-        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
-      all_stages_json: >-
-        [
-          {"number":1,"type":"contribute","persona":"Developer","skipped":false},
-          {"number":2,"type":"contribute","persona":"Acceptance Tester","skipped":false},
-          {"number":3,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":4,"type":"review","persona":"Product Manager","skipped":false}
-        ]
+      prompt_vars: impl_pr_number=${{ needs.detect.outputs.impl_pr_number }} pr_id=${{ needs.detect.outputs.pr_id }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Developer","skipped":false},{"number":2,"type":"contribute","persona":"Acceptance Tester","skipped":false},{"number":3,"type":"contribute","persona":"Tech
+        Lead","skipped":false},{"number":4,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-  stage-3-tech-lead-plan:
-    name: "Stage 3: Tech Lead — update plan"
-    needs: [detect-trigger, create-branch, stage-2-acceptance-tester]
+  stage-3-tech-lead-update-plan:
+    name: 'Stage 3: Tech Lead — update plan'
+    needs:
+    - detect
+    - create-branch
+    - stage-2-acceptance-tester-assess-tests
     uses: ./.github/workflows/reusable/agent-invoke.yml
     with:
       work_cycle: accept
       persona: tech-lead
-      stage_number: "3"
+      stage_number: '3'
       stage_type: contribute
-      stage_label: "stage/tech-lead"
-      branch: ${{ needs.create-branch.outputs.branch }}
+      stage_label: stage/tech-lead
       prompt_template: docs/agents/prompts/accept/tech-lead-update-plan.md
-      prompt_vars: >-
-        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
-        plan_file=${{ needs.detect-trigger.outputs.plan_file }}
-      all_stages_json: >-
-        [
-          {"number":1,"type":"contribute","persona":"Developer","skipped":false},
-          {"number":2,"type":"contribute","persona":"Acceptance Tester","skipped":false},
-          {"number":3,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":4,"type":"review","persona":"Product Manager","skipped":false}
-        ]
+      prompt_vars: pr_id=${{ needs.detect.outputs.pr_id }} plan_file=${{ needs.detect.outputs.plan_file }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Developer","skipped":false},{"number":2,"type":"contribute","persona":"Acceptance Tester","skipped":false},{"number":3,"type":"contribute","persona":"Tech
+        Lead","skipped":false},{"number":4,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
   open-pr:
-    name: Open acceptance PR
-    needs: [detect-trigger, create-branch, stage-3-tech-lead-plan]
+    name: Open accept PR
+    needs:
+    - detect
+    - create-branch
+    - stage-3-tech-lead-update-plan
     runs-on: ubuntu-latest
     outputs:
       pr_number: ${{ steps.pr.outputs.number }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.create-branch.outputs.branch }}
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.create-branch.outputs.branch }}
+    - name: Create PR
+      id: pr
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fn = require('./scripts/work-cycle/github/create-work-cycle-pr.js');
+          await fn({ github, context, core });
+      env:
+        PR_TITLE: '[Accept] Assessment for ${{ needs.detect.outputs.pr_id || github.event.pull_request.number }}'
+        PR_BODY: |-
+          ## Acceptance Assessment
 
-      - name: Create PR
-        id: pr
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fn = require('./scripts/work-cycle/github/create-work-cycle-pr.js');
-            await fn({ github, context, core });
-        env:
-          PR_TITLE: "[Accept] Assessment for ${{ needs.detect-trigger.outputs.pr_id || github.event.pull_request.number }}"
-          PR_BODY: "## Acceptance Assessment\n\n- **Implementation PR:** #${{ needs.detect-trigger.outputs.impl_pr_number }}\n- **Plan PR ID:** ${{ needs.detect-trigger.outputs.pr_id }}\n- **Milestone:** ${{ needs.detect-trigger.outputs.milestone_id }}\n\nThis PR records acceptance test results and plan updates following an implementation merge."
-          HEAD_BRANCH: ${{ needs.create-branch.outputs.branch }}
-          WORK_CYCLE_LABEL: "work-cycle/acceptance"
+          - **Implementation PR:** #${{ needs.detect.outputs.impl_pr_number }}
+          - **Plan PR ID:** ${{ needs.detect.outputs.pr_id }}
+          - **Milestone:** ${{ needs.detect.outputs.milestone_id }}
 
-  stage-4-pm-review:
-    name: "Stage 4: Product Manager — review"
-    needs: [detect-trigger, create-branch, open-pr]
+          This PR records acceptance test results and plan updates following an implementation merge.
+        HEAD_BRANCH: ${{ needs.create-branch.outputs.branch }}
+        WORK_CYCLE_LABEL: work-cycle/acceptance
+  stage-4-product-manager-review:
+    name: 'Stage 4: Product Manager — review'
+    needs:
+    - detect
+    - create-branch
+    - open-pr
     uses: ./.github/workflows/reusable/agent-invoke.yml
     with:
       work_cycle: accept
       persona: product-manager
-      stage_number: "4"
+      stage_number: '4'
       stage_type: review
-      stage_label: "stage/review-product-manager"
+      stage_label: stage/review-product-manager
+      prompt_template: docs/agents/prompts/accept/pm-review-acceptance.md
+      prompt_vars: pr_id=${{ needs.detect.outputs.pr_id }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Developer","skipped":false},{"number":2,"type":"contribute","persona":"Acceptance Tester","skipped":false},{"number":3,"type":"contribute","persona":"Tech
+        Lead","skipped":false},{"number":4,"type":"review","persona":"Product Manager","skipped":false}]'
       branch: ${{ needs.create-branch.outputs.branch }}
       pr_number: ${{ needs.open-pr.outputs.pr_number }}
-      prompt_template: docs/agents/prompts/accept/pm-review-acceptance.md
-      prompt_vars: >-
-        pr_id=${{ needs.detect-trigger.outputs.pr_id }}
-      all_stages_json: >-
-        [
-          {"number":1,"type":"contribute","persona":"Developer","skipped":false},
-          {"number":2,"type":"contribute","persona":"Acceptance Tester","skipped":false},
-          {"number":3,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":4,"type":"review","persona":"Product Manager","skipped":false}
-        ]
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

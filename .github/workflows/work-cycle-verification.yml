@@ -1,34 +1,22 @@
-# Verification Work Cycle
-#
-# Trigger: a plan is merged or updated with a milestone status set to in-progress.
-# Stages:
-#   1. Tech Lead (contribute) — review milestone, confirm PR ordering
-#   2. Developer (contribute) — set up build/CI for new components if needed
-#   3. Acceptance Tester (contribute) — write failing acceptance tests
-#   4. Tech Lead (contribute) — annotate plan with test-to-PR mappings
-#   5. Product Manager (review) — human reviews the verification PR
-#
-# See docs/agents/work-cycles/verification.md for details.
+# AUTO-GENERATED from docs/agents/work-cycles/stages/verification.yaml
+# Do not edit manually. Run: make generate-workflows
 
-name: "Work Cycle: Verification"
-
-on:
+name: 'Work Cycle: Verification'
+'on':
   push:
-    branches: [main]
+    branches:
+    - main
     paths:
-      - ".planning/plans/**"
-
+    - .planning/plans/**
 concurrency:
   group: agent-execution
   cancel-in-progress: false
-
 permissions:
   contents: write
   pull-requests: write
   issues: write
-
 jobs:
-  detect-milestone:
+  detect:
     name: Detect activated milestone
     runs-on: ubuntu-latest
     outputs:
@@ -37,178 +25,143 @@ jobs:
       milestone_id: ${{ steps.detect.outputs.milestone_id }}
       should_run: ${{ steps.detect.outputs.should_run }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pip install pyyaml
-
-      - name: Find activated milestone
-        id: detect
-        shell: bash
-        run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD -- '.planning/plans/' || true)
-          if [ -z "$CHANGED" ]; then
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "plan_file=" >> "$GITHUB_OUTPUT"
-            echo "plan_id=" >> "$GITHUB_OUTPUT"
-            echo "milestone_id=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          python3 scripts/work-cycle/detect_milestone.py --plan-files $CHANGED >> "$GITHUB_OUTPUT"
-
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: pip install pyyaml
+    - name: Detect activated milestone
+      id: detect
+      shell: bash
+      run: |-
+        CHANGED=$(git diff --name-only HEAD~1 HEAD -- '.planning/plans/' || true)
+        if [ -z "$CHANGED" ]; then
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+          echo "plan_file=" >> "$GITHUB_OUTPUT"
+          echo "plan_id=" >> "$GITHUB_OUTPUT"
+          echo "milestone_id=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        python3 scripts/work-cycle/detect_milestone.py --plan-files $CHANGED >> "$GITHUB_OUTPUT"
   create-branch:
     name: Create verification branch
-    needs: detect-milestone
-    if: needs.detect-milestone.outputs.should_run == 'true'
+    needs: detect
+    if: needs.detect.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     outputs:
       branch: ${{ steps.branch.outputs.name }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Create branch
-        id: branch
-        shell: bash
-        run: |
-          BRANCH="verify/${{ needs.detect-milestone.outputs.milestone_id }}"
-          git checkout -b "$BRANCH"
-          git push -u origin "$BRANCH"
-          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
-
-  stage-1-tech-lead-confirm:
-    name: "Stage 1: Tech Lead — confirm milestone"
-    needs: [detect-milestone, create-branch]
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Create branch
+      id: branch
+      shell: bash
+      run: |-
+        BRANCH="verify/${{ needs.detect.outputs.milestone_id }}"
+        git checkout -b "$BRANCH"
+        git push -u origin "$BRANCH"
+        echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+  stage-1-tech-lead-confirm-milestone:
+    name: 'Stage 1: Tech Lead — confirm milestone'
+    needs:
+    - detect
+    - create-branch
     uses: ./.github/workflows/reusable/agent-invoke.yml
     with:
       work_cycle: verification
       persona: tech-lead
-      stage_number: "1"
+      stage_number: '1'
       stage_type: contribute
-      stage_label: "stage/tech-lead"
-      branch: ${{ needs.create-branch.outputs.branch }}
+      stage_label: stage/tech-lead
       prompt_template: docs/agents/prompts/verification/tech-lead-confirm-milestone.md
-      prompt_vars: >-
-        milestone_id=${{ needs.detect-milestone.outputs.milestone_id }}
-        plan_file=${{ needs.detect-milestone.outputs.plan_file }}
-      all_stages_json: >-
-        [
-          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":2,"type":"contribute","persona":"Developer","skipped":false},
-          {"number":3,"type":"contribute","persona":"Acceptance Tester","skipped":false},
-          {"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":5,"type":"review","persona":"Product Manager","skipped":false}
-        ]
+      prompt_vars: milestone_id=${{ needs.detect.outputs.milestone_id }} plan_file=${{ needs.detect.outputs.plan_file }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":2,"type":"contribute","persona":"Developer","skipped":false},{"number":3,"type":"contribute","persona":"Acceptance
+        Tester","skipped":false},{"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":5,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-  stage-2-developer-ci:
-    name: "Stage 2: Developer — CI/build setup"
-    needs: [detect-milestone, create-branch, stage-1-tech-lead-confirm]
+  stage-2-developer-ci-build-setup:
+    name: 'Stage 2: Developer — CI/build setup'
+    needs:
+    - detect
+    - create-branch
+    - stage-1-tech-lead-confirm-milestone
     uses: ./.github/workflows/reusable/agent-invoke.yml
     with:
       work_cycle: verification
       persona: developer
-      stage_number: "2"
+      stage_number: '2'
       stage_type: contribute
-      stage_label: "stage/developer"
-      branch: ${{ needs.create-branch.outputs.branch }}
+      stage_label: stage/developer
       prompt_template: docs/agents/prompts/verification/developer-ci-setup.md
-      prompt_vars: >-
-        milestone_id=${{ needs.detect-milestone.outputs.milestone_id }}
-        plan_file=${{ needs.detect-milestone.outputs.plan_file }}
-      all_stages_json: >-
-        [
-          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":2,"type":"contribute","persona":"Developer","skipped":false},
-          {"number":3,"type":"contribute","persona":"Acceptance Tester","skipped":false},
-          {"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":5,"type":"review","persona":"Product Manager","skipped":false}
-        ]
+      prompt_vars: milestone_id=${{ needs.detect.outputs.milestone_id }} plan_file=${{ needs.detect.outputs.plan_file }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":2,"type":"contribute","persona":"Developer","skipped":false},{"number":3,"type":"contribute","persona":"Acceptance
+        Tester","skipped":false},{"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":5,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-  stage-3-acceptance-tester:
-    name: "Stage 3: Acceptance Tester — write tests"
-    needs: [detect-milestone, create-branch, stage-2-developer-ci]
+  stage-3-acceptance-tester-write-tests:
+    name: 'Stage 3: Acceptance Tester — write tests'
+    needs:
+    - detect
+    - create-branch
+    - stage-2-developer-ci-build-setup
     uses: ./.github/workflows/reusable/agent-invoke.yml
     with:
       work_cycle: verification
       persona: acceptance-tester
-      stage_number: "3"
+      stage_number: '3'
       stage_type: contribute
-      stage_label: "stage/acceptance-tester"
-      branch: ${{ needs.create-branch.outputs.branch }}
+      stage_label: stage/acceptance-tester
       prompt_template: docs/agents/prompts/verification/acceptance-tester-write-tests.md
-      prompt_vars: >-
-        milestone_id=${{ needs.detect-milestone.outputs.milestone_id }}
-        plan_file=${{ needs.detect-milestone.outputs.plan_file }}
-      all_stages_json: >-
-        [
-          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":2,"type":"contribute","persona":"Developer","skipped":false},
-          {"number":3,"type":"contribute","persona":"Acceptance Tester","skipped":false},
-          {"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":5,"type":"review","persona":"Product Manager","skipped":false}
-        ]
+      prompt_vars: milestone_id=${{ needs.detect.outputs.milestone_id }} plan_file=${{ needs.detect.outputs.plan_file }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":2,"type":"contribute","persona":"Developer","skipped":false},{"number":3,"type":"contribute","persona":"Acceptance
+        Tester","skipped":false},{"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":5,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-  stage-4-tech-lead-mappings:
-    name: "Stage 4: Tech Lead — test-to-PR mappings"
-    needs: [detect-milestone, create-branch, stage-3-acceptance-tester]
+  stage-4-tech-lead-test-to-pr-mappings:
+    name: 'Stage 4: Tech Lead — test-to-PR mappings'
+    needs:
+    - detect
+    - create-branch
+    - stage-3-acceptance-tester-write-tests
     uses: ./.github/workflows/reusable/agent-invoke.yml
     with:
       work_cycle: verification
       persona: tech-lead
-      stage_number: "4"
+      stage_number: '4'
       stage_type: contribute
-      stage_label: "stage/tech-lead"
-      branch: ${{ needs.create-branch.outputs.branch }}
+      stage_label: stage/tech-lead
       prompt_template: docs/agents/prompts/verification/tech-lead-test-mappings.md
-      prompt_vars: >-
-        milestone_id=${{ needs.detect-milestone.outputs.milestone_id }}
-        plan_file=${{ needs.detect-milestone.outputs.plan_file }}
-      all_stages_json: >-
-        [
-          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":2,"type":"contribute","persona":"Developer","skipped":false},
-          {"number":3,"type":"contribute","persona":"Acceptance Tester","skipped":false},
-          {"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":5,"type":"review","persona":"Product Manager","skipped":false}
-        ]
+      prompt_vars: milestone_id=${{ needs.detect.outputs.milestone_id }} plan_file=${{ needs.detect.outputs.plan_file }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":2,"type":"contribute","persona":"Developer","skipped":false},{"number":3,"type":"contribute","persona":"Acceptance
+        Tester","skipped":false},{"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":5,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-  stage-5-pm-review:
-    name: "Stage 5: Product Manager — review"
-    needs: [detect-milestone, create-branch, stage-4-tech-lead-mappings]
+  stage-5-product-manager-review:
+    name: 'Stage 5: Product Manager — review'
+    needs:
+    - detect
+    - create-branch
+    - stage-4-tech-lead-test-to-pr-mappings
     uses: ./.github/workflows/reusable/agent-invoke.yml
     with:
       work_cycle: verification
       persona: product-manager
-      stage_number: "5"
+      stage_number: '5'
       stage_type: review
-      stage_label: "stage/review-product-manager"
-      branch: ${{ needs.create-branch.outputs.branch }}
+      stage_label: stage/review-product-manager
       prompt_template: docs/agents/prompts/verification/pm-review-verification.md
-      prompt_vars: >-
-        milestone_id=${{ needs.detect-milestone.outputs.milestone_id }}
-      all_stages_json: >-
-        [
-          {"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":2,"type":"contribute","persona":"Developer","skipped":false},
-          {"number":3,"type":"contribute","persona":"Acceptance Tester","skipped":false},
-          {"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},
-          {"number":5,"type":"review","persona":"Product Manager","skipped":false}
-        ]
+      prompt_vars: milestone_id=${{ needs.detect.outputs.milestone_id }}
+      all_stages_json: '[{"number":1,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":2,"type":"contribute","persona":"Developer","skipped":false},{"number":3,"type":"contribute","persona":"Acceptance
+        Tester","skipped":false},{"number":4,"type":"contribute","persona":"Tech Lead","skipped":false},{"number":5,"type":"review","persona":"Product Manager","skipped":false}]'
+      branch: ${{ needs.create-branch.outputs.branch }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
